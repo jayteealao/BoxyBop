@@ -1,0 +1,181 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-studio-border;
+  }
+
+  html {
+    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-studio-bg text-ink-primary font-sans;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-studio-bg;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-studio-border-accent rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-muted;
+  }
+
+  /* Focus styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-studio-bg;
+  }
+}
+
+@layer components {
+  /* Card component */
+  .card {
+    @apply bg-studio-surface border border-studio-border rounded-xl;
+  }
+
+  .card-raised {
+    @apply bg-studio-surface-raised border border-studio-border rounded-xl shadow-lg;
+  }
+
+  /* Button variants */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           font-medium text-sm rounded-lg transition-all duration-150
+           focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-accent focus-visible:ring-offset-2
+           focus-visible:ring-offset-studio-bg
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-studio-bg hover:bg-accent-hover active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply btn bg-studio-surface-raised border border-studio-border
+           text-ink-primary hover:bg-studio-surface-overlay hover:border-studio-border-accent;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-ink-secondary
+           hover:bg-studio-surface-raised hover:text-ink-primary;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger/10 text-danger border border-danger/20
+           hover:bg-danger/20 hover:border-danger/30;
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full px-3 py-2 bg-studio-bg border border-studio-border rounded-lg
+           text-ink-primary placeholder:text-ink-muted
+           focus:border-accent focus:ring-1 focus:ring-accent
+           transition-colors duration-150;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-md;
+  }
+
+  .badge-default {
+    @apply badge bg-studio-surface-raised text-ink-secondary border border-studio-border;
+  }
+
+  .badge-accent {
+    @apply badge bg-accent/10 text-accent border border-accent/20;
+  }
+
+  .badge-success {
+    @apply badge bg-success/10 text-success border border-success/20;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning/10 text-warning border border-warning/20;
+  }
+
+  .badge-danger {
+    @apply badge bg-danger/10 text-danger border border-danger/20;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply animate-pulse bg-studio-surface-raised rounded;
+  }
+
+  /* Code/mono text */
+  .code {
+    @apply font-mono text-sm bg-studio-bg px-1.5 py-0.5 rounded border border-studio-border;
+  }
+
+  /* Tab styles */
+  .tab {
+    @apply px-4 py-2 text-sm font-medium text-ink-muted
+           hover:text-ink-primary transition-colors
+           border-b-2 border-transparent;
+  }
+
+  .tab-active {
+    @apply tab text-accent border-accent;
+  }
+
+  /* Empty state */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 px-8 text-center;
+  }
+
+  /* Token preview swatches */
+  .swatch {
+    @apply w-10 h-10 rounded-lg border border-studio-border shadow-inner;
+  }
+
+  .swatch-sm {
+    @apply w-6 h-6 rounded border border-studio-border;
+  }
+}
+
+@layer utilities {
+  /* Text gradient utility */
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent to-accent-hover bg-clip-text text-transparent;
+  }
+
+  /* Noise texture overlay */
+  .noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+  }
+
+  /* Subtle grid pattern */
+  .grid-pattern {
+    background-image: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.02) 1px,
+        transparent 1px
+      ),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-studio-surface/80 backdrop-blur-lg;
+  }
+}

@@ -39,3 +39,10 @@ export {
   generateTestRunnerConfig,
   generateSnapshotCompareScript,
 } from "./storybook.js";
+
+// Manifest exports
+export {
+  generateManifest,
+  loadManifest,
+  type StudioManifest,
+} from "./manifest.js";

@@ -44,6 +44,7 @@ import {
   saveGenerationState,
 } from "./registry.js";
 import { setupStorybook } from "./storybook.js";
+import { generateManifest } from "./manifest.js";
 import type { Registry, GenerationState as RegistryGenerationState } from "@boxybop/registry";
 
 /**
@@ -744,6 +745,15 @@ export async function runGenerator(config: GeneratorConfig): Promise<GeneratorRe
           // Setup Storybook configuration
           await setupStorybook(config.outputDir, config.setSlug, config.lockedTokens);
           console.log(`[Codegen] Generated Storybook configuration`);
+
+          // Generate Studio manifest for browsing in Studio UI
+          await generateManifest(
+            config.outputDir,
+            config.setSlug,
+            config.lockedTokens,
+            state,
+            config.cropAnalyses
+          );
 
           markComplete(state, next.name, next.type, registryPath);
           console.log(`[Codegen] Generated registry.json`);

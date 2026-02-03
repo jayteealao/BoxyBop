@@ -7,6 +7,7 @@ import { analyzeStyleRouter } from "./routes/analyze-style.js";
 import { analyzeCropRouter } from "./routes/analyze-crop.js";
 import { runSetRouter } from "./routes/run-set.js";
 import { codegenRouter } from "./routes/codegen.js";
+import { uiPackagesRouter } from "./routes/ui-packages.js";
 import { validateEnv } from "./config/env.js";
 
 // Validate required environment variables
@@ -27,6 +28,7 @@ app.use("/api/analyze-style-set", analyzeStyleRouter);
 app.use("/api/analyze-crop", analyzeCropRouter);
 app.use("/api/run-set", runSetRouter);
 app.use("/api/codegen", codegenRouter);
+app.use("/api/ui-packages", uiPackagesRouter);
 
 // Error handling
 app.use(
