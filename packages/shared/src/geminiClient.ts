@@ -1,19 +1,25 @@
 /**
  * Gemini API Client for style analysis.
  *
- * Uses Gemini 2.0 Flash for agentic vision tasks.
+ * Uses Gemini 3.0 Flash with Agentic Vision (Code Execution) for
+ * precise visual analysis. The model can generate and execute code
+ * to zoom, crop, measure, and analyze images step-by-step.
+ *
+ * @see https://ai.google.dev/gemini-api/docs/code-execution
  */
 
-import { z } from "zod";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
-const GEMINI_MODEL = "gemini-2.0-flash";
-const STYLE_ANALYSIS_PROMPT_VERSION = "1.0.0";
+const GEMINI_MODEL = "gemini-3-flash-preview";
+const STYLE_ANALYSIS_PROMPT_VERSION = "2.0.0";
 
 /**
  * Gemini client options.
  */
 export interface GeminiClientOptions {
   apiKey?: string;
+  /** Thinking level for agentic reasoning (default: HIGH) */
+  thinkingLevel?: ThinkingLevel;
 }
 
 /**
@@ -82,7 +88,15 @@ export interface GeminiStyleAnalysisResponse {
   }>;
 }
 
-const STYLE_ANALYSIS_PROMPT = `You are a design system analyzer. Analyze the provided UI screenshots and extract a comprehensive style guide.
+const STYLE_ANALYSIS_PROMPT = `You are a design system analyzer with agentic vision capabilities.
+Analyze the provided UI screenshots and extract a comprehensive style guide.
+
+Use code execution to precisely measure colors, fonts, spacing, and visual elements.
+You can write and execute Python code to:
+- Sample exact pixel colors at specific coordinates
+- Measure distances between elements
+- Identify consistent patterns
+- Calculate typography metrics
 
 Output ONLY valid JSON conforming to this schema:
 {
@@ -105,32 +119,34 @@ Output ONLY valid JSON conforming to this schema:
 }
 
 Guidelines:
-- Measure colors precisely using hex values
-- Estimate font sizes, weights, and spacing in pixels
-- Identify consistent patterns across images
-- Note which images support which style rules
-- For typography, look at headings, body text, captions, buttons
-- For spacing, identify common padding and gap patterns
-- For components, extract typical dimensions and styles
+- Use code execution to sample colors precisely from the images
+- Measure exact pixel distances for spacing patterns
+- Analyze font rendering to estimate sizes and weights
+- Identify consistent patterns across all provided images
+- Note which images support which style rules in imageReferences
 
-Respond with ONLY the JSON object, no markdown or explanation.`;
+IMPORTANT: After your analysis, output ONLY the final JSON object with no additional text or markdown.`;
 
 /**
- * Gemini client for style analysis.
+ * Gemini client for style analysis using Agentic Vision.
  */
 export class GeminiClient {
-  private apiKey: string;
+  private ai: GoogleGenAI;
+  private thinkingLevel: ThinkingLevel;
 
   constructor(options: GeminiClientOptions = {}) {
     const apiKey = options.apiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is required");
     }
-    this.apiKey = apiKey;
+    this.ai = new GoogleGenAI({ apiKey });
+    this.thinkingLevel = options.thinkingLevel || ThinkingLevel.HIGH;
   }
 
   /**
-   * Analyze images for style extraction.
+   * Analyze images for style extraction using Agentic Vision.
+   *
+   * Enables Code Execution tool for precise visual measurements.
    */
   async analyzeStyle(
     images: StyleAnalysisImage[]
@@ -142,69 +158,111 @@ export class GeminiClient {
   }> {
     const startTime = Date.now();
 
-    // Build multimodal request with all images
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-      { text: STYLE_ANALYSIS_PROMPT },
-    ];
+    // Build multimodal content with images and prompt
+    type ContentPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+    const contents: ContentPart[] = [];
 
+    // Add images with their IDs
     for (const image of images) {
-      parts.push({
+      contents.push({
         inlineData: {
           mimeType: image.mimeType,
           data: image.base64,
         },
       });
-      parts.push({
-        text: `Image ID: ${image.id}`,
+      contents.push({
+        text: `[Image ID: ${image.id}]`,
       });
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${this.apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: {
-            temperature: 0.1,
-            topP: 0.95,
-            topK: 40,
-            maxOutputTokens: 8192,
-            responseMimeType: "application/json",
-          },
-        }),
-      }
-    );
+    // Add the analysis prompt
+    contents.push({
+      text: STYLE_ANALYSIS_PROMPT,
+    });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Gemini API error: ${response.status} - ${error}`);
-    }
+    console.log(`[Gemini] Analyzing ${images.length} images with Agentic Vision (${GEMINI_MODEL})`);
 
-    const result = await response.json() as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{ text?: string }>;
-        };
-      }>;
-    };
+    // Call Gemini with Code Execution enabled for Agentic Vision
+    const response = await this.ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents,
+      config: {
+        // Enable Code Execution for Agentic Vision
+        tools: [{ codeExecution: {} }],
+        // Set thinking level for deeper reasoning
+        thinkingConfig: {
+          thinkingLevel: this.thinkingLevel,
+        },
+        // Configure output
+        temperature: 0.1,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 16384,
+      },
+    });
+
     const latencyMs = Date.now() - startTime;
 
-    // Extract text from response
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
+    // Extract text and code execution results
+    const parts = response?.candidates?.[0]?.content?.parts || [];
+    let analysisText = "";
+    let codeExecuted = false;
+
+    for (const part of parts) {
+      if ("text" in part && part.text) {
+        analysisText += part.text;
+      }
+      if ("executableCode" in part && part.executableCode) {
+        console.log("[Gemini] Executed code for analysis");
+        codeExecuted = true;
+      }
+      if ("codeExecutionResult" in part && part.codeExecutionResult) {
+        const output = part.codeExecutionResult.output;
+        if (output) {
+          console.log("[Gemini] Code execution output:", output.slice(0, 100));
+        }
+      }
+    }
+
+    if (codeExecuted) {
+      console.log("[Gemini] Used Agentic Vision code execution for precise measurements");
+    }
+
+    if (!analysisText) {
       throw new Error("No content in Gemini response");
+    }
+
+    // Extract JSON from response (may be wrapped in markdown or have preamble)
+    let jsonText = analysisText;
+
+    // Try to extract JSON from code block if present
+    const jsonMatch = analysisText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[1].trim();
+    } else {
+      // Try to find JSON object directly
+      const jsonStartIndex = analysisText.indexOf("{");
+      const jsonEndIndex = analysisText.lastIndexOf("}");
+      if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
+        jsonText = analysisText.slice(jsonStartIndex, jsonEndIndex + 1);
+      }
     }
 
     // Parse JSON response
     let analysis: GeminiStyleAnalysisResponse;
     try {
-      analysis = JSON.parse(text);
+      analysis = JSON.parse(jsonText);
     } catch (err) {
-      console.error("[Gemini] Failed to parse JSON:", text);
+      console.error("[Gemini] Failed to parse JSON:", jsonText.slice(0, 500));
       throw new Error(`Failed to parse Gemini JSON response: ${err}`);
     }
+
+    console.log(`[Gemini] Analysis complete in ${latencyMs}ms:`, {
+      colors: analysis.colors?.length ?? 0,
+      typography: analysis.typography?.length ?? 0,
+      spacing: analysis.spacing?.length ?? 0,
+      componentRules: analysis.componentRules?.length ?? 0,
+    });
 
     return {
       analysis,
@@ -219,12 +277,17 @@ export class GeminiClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`,
-        { method: "GET" }
-      );
-      return response.ok;
-    } catch {
+      // Simple test request
+      const response = await this.ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: "Reply with: OK",
+        config: {
+          maxOutputTokens: 10,
+        },
+      });
+      return !!response?.candidates?.[0]?.content?.parts?.[0];
+    } catch (err) {
+      console.error("[Gemini] Health check failed:", err);
       return false;
     }
   }
