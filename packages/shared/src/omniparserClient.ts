@@ -1,18 +1,33 @@
 /**
  * OmniParser Client - Thin adapter for OmniParser via Replicate
  *
- * This module provides a Node.js interface to Microsoft's OmniParser model
+ * This module provides a Node.js interface to Microsoft's OmniParser v2 model
  * running on Replicate. No local Python dependency required.
  */
 
 import Replicate from "replicate";
 import { z } from "zod";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
-// OmniParser model on Replicate
-const OMNIPARSER_MODEL = "microsoft/omniparser:fc9e656b3f3c1f8b856621d76fc4e0e4f3a14dc733a55e4be67dcc8c8d1e51f1";
+// OmniParser v2 model on Replicate with pinned version
+const OMNIPARSER_MODEL = "microsoft/omniparser-v2";
+const OMNIPARSER_VERSION =
+  "microsoft/omniparser-v2:49cf3d41b8d3aca1360514e83be4c97131ce8f0d99abfc365526d8384caa88df";
 
 /**
- * Raw bounding box from OmniParser output
+ * Replicate input schema for OmniParser v2
+ */
+export const OmniParserInputSchema = z.object({
+  box_threshold: z.number().min(0).max(1).default(0.05),
+  iou_threshold: z.number().min(0).max(1).default(0.1),
+  imgsz: z.number().int().positive().default(640),
+});
+
+export type OmniParserInput = z.infer<typeof OmniParserInputSchema>;
+
+/**
+ * Raw bounding box from OmniParser output (original pixel coords)
  */
 export const OmniParserBBoxSchema = z.object({
   x: z.number(),
@@ -22,12 +37,29 @@ export const OmniParserBBoxSchema = z.object({
 });
 
 /**
- * Raw element from OmniParser output
+ * Raw element from parsed OmniParser elements string
+ */
+export const OmniParserRawElementSchema = z.object({
+  bbox: z.union([
+    OmniParserBBoxSchema,
+    z.array(z.number()).length(4), // [x, y, w, h] format
+  ]),
+  label: z.string().optional(),
+  type: z.string().optional(),
+  text: z.string().optional(),
+  confidence: z.number().min(0).max(1).optional(),
+});
+
+/**
+ * Normalized element with consistent bbox format
  */
 export const OmniParserElementSchema = z.object({
+  id: z.string(),
   bbox: OmniParserBBoxSchema,
-  label: z.string(),
-  confidence: z.number().min(0).max(1),
+  type: z.string().optional(),
+  text: z.string().optional(),
+  confidence: z.number().min(0).max(1).optional(),
+  source: z.literal("omniparser"),
 });
 
 /**
@@ -35,8 +67,14 @@ export const OmniParserElementSchema = z.object({
  */
 export const OmniParserResponseSchema = z.object({
   elements: z.array(OmniParserElementSchema),
-  image_width: z.number(),
-  image_height: z.number(),
+  width: z.number(),
+  height: z.number(),
+  annotatedImageUrl: z.string().optional(),
+  runMetadata: z.object({
+    model: z.string(),
+    version: z.string(),
+    inputs: OmniParserInputSchema,
+  }),
 });
 
 export type OmniParserBBox = z.infer<typeof OmniParserBBoxSchema>;
@@ -49,16 +87,28 @@ export type OmniParserResponse = z.infer<typeof OmniParserResponseSchema>;
 export interface OmniParserClientOptions {
   /** Replicate API token (defaults to REPLICATE_API_TOKEN env var) */
   apiToken?: string;
-  /** Request timeout in milliseconds (default: 300000 = 5 minutes) */
-  timeout?: number;
+  /** Directory to dump raw output on parse failure (for debugging) */
+  debugOutputDir?: string;
 }
 
 /**
  * Options for parsing a screenshot
  */
 export interface ParseOptions {
-  /** Minimum confidence threshold (0-1, default: 0.5) */
-  minConfidence?: number;
+  /** Minimum confidence threshold for box detection (0-1, default: 0.05) */
+  box_threshold?: number;
+  /** IOU threshold for NMS (0-1, default: 0.1) */
+  iou_threshold?: number;
+  /** Image size for processing (default: 640) */
+  imgsz?: number;
+}
+
+/**
+ * Raw output from Replicate OmniParser v2
+ */
+interface ReplicateOmniParserOutput {
+  img?: string; // URL to annotated image
+  elements?: string; // JSON string of elements
 }
 
 /**
@@ -66,7 +116,7 @@ export interface ParseOptions {
  */
 export class OmniParserClient {
   private replicate: Replicate;
-  private timeout: number;
+  private debugOutputDir?: string;
 
   constructor(options: OmniParserClientOptions = {}) {
     const apiToken = options.apiToken || process.env.REPLICATE_API_TOKEN;
@@ -78,46 +128,76 @@ export class OmniParserClient {
     }
 
     this.replicate = new Replicate({ auth: apiToken });
-    this.timeout = options.timeout || 300000; // 5 minutes default
+    this.debugOutputDir = options.debugOutputDir;
   }
 
   /**
    * Parse a screenshot to detect UI elements
    *
-   * @param imageBase64 - Base64-encoded image data (PNG, JPEG, WebP)
+   * @param imageBuffer - Image data as Buffer (PNG, JPEG, WebP)
+   * @param imageWidth - Original image width in pixels
+   * @param imageHeight - Original image height in pixels
    * @param options - Parse options
-   * @returns Detected UI elements with bounding boxes
+   * @returns Detected UI elements with bounding boxes in ORIGINAL pixel coords
    */
   async parseScreenshot(
-    imageBase64: string,
+    imageBuffer: Buffer,
+    imageWidth: number,
+    imageHeight: number,
     options: ParseOptions = {}
   ): Promise<OmniParserResponse> {
-    const { minConfidence = 0.5 } = options;
+    const inputs = OmniParserInputSchema.parse({
+      box_threshold: options.box_threshold ?? 0.05,
+      iou_threshold: options.iou_threshold ?? 0.1,
+      imgsz: options.imgsz ?? 640,
+    });
 
-    // Ensure base64 has data URI prefix if not present
-    const imageUri = imageBase64.startsWith("data:")
-      ? imageBase64
-      : `data:image/png;base64,${imageBase64}`;
+    console.log("[OmniParser] Running with inputs:", {
+      model: OMNIPARSER_MODEL,
+      version: OMNIPARSER_VERSION,
+      inputs,
+      imageSize: { width: imageWidth, height: imageHeight },
+    });
 
     try {
-      // Run OmniParser via Replicate
-      const output = await this.replicate.run(OMNIPARSER_MODEL, {
-        input: {
-          image: imageUri,
-        },
+      // Create a File-like object for Replicate
+      const imageFile = new File([imageBuffer], "screenshot.png", {
+        type: "image/png",
       });
 
-      // Parse and validate response
-      const response = this.parseOutput(output);
+      // Run OmniParser via Replicate
+      const output = (await this.replicate.run(OMNIPARSER_VERSION, {
+        input: {
+          image: imageFile,
+          box_threshold: inputs.box_threshold,
+          iou_threshold: inputs.iou_threshold,
+          imgsz: inputs.imgsz,
+        },
+      })) as ReplicateOmniParserOutput;
 
-      // Filter by confidence threshold
-      const filteredElements = response.elements.filter(
-        (el) => el.confidence >= minConfidence
+      console.log("[OmniParser] Raw output received:", {
+        hasImg: !!output.img,
+        hasElements: !!output.elements,
+        elementsType: typeof output.elements,
+      });
+
+      // Parse elements from JSON string
+      const elements = this.parseElements(
+        output.elements,
+        imageWidth,
+        imageHeight
       );
 
       return {
-        ...response,
-        elements: filteredElements,
+        elements,
+        width: imageWidth,
+        height: imageHeight,
+        annotatedImageUrl: output.img,
+        runMetadata: {
+          model: OMNIPARSER_MODEL,
+          version: OMNIPARSER_VERSION,
+          inputs,
+        },
       };
     } catch (error) {
       if (error instanceof Error) {
@@ -128,32 +208,144 @@ export class OmniParserClient {
   }
 
   /**
-   * Parse raw Replicate output into typed response
+   * Parse a screenshot from base64 string
    */
-  private parseOutput(output: unknown): OmniParserResponse {
-    // OmniParser returns output in a specific format
-    // This may need adjustment based on actual Replicate output format
+  async parseScreenshotBase64(
+    imageBase64: string,
+    imageWidth: number,
+    imageHeight: number,
+    options: ParseOptions = {}
+  ): Promise<OmniParserResponse> {
+    // Strip data URI prefix if present
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const imageBuffer = Buffer.from(base64Data, "base64");
+    return this.parseScreenshot(imageBuffer, imageWidth, imageHeight, options);
+  }
+
+  /**
+   * Parse a screenshot from file path
+   */
+  async parseScreenshotFromFile(
+    filePath: string,
+    imageWidth: number,
+    imageHeight: number,
+    options: ParseOptions = {}
+  ): Promise<OmniParserResponse> {
+    const imageBuffer = fs.readFileSync(filePath);
+    return this.parseScreenshot(imageBuffer, imageWidth, imageHeight, options);
+  }
+
+  /**
+   * Parse elements JSON string from Replicate output
+   */
+  private parseElements(
+    elementsRaw: string | undefined,
+    imageWidth: number,
+    imageHeight: number
+  ): OmniParserElement[] {
+    if (!elementsRaw) {
+      console.warn("[OmniParser] No elements in output");
+      return [];
+    }
+
     try {
-      // If output is already in expected format
-      if (typeof output === "object" && output !== null) {
-        return OmniParserResponseSchema.parse(output);
+      const parsed = JSON.parse(elementsRaw);
+
+      if (!Array.isArray(parsed)) {
+        throw new Error("Elements is not an array");
       }
 
-      // If output is a string (JSON), parse it
-      if (typeof output === "string") {
-        const parsed = JSON.parse(output);
-        return OmniParserResponseSchema.parse(parsed);
-      }
+      return parsed.map((el: unknown, index: number) => {
+        const raw = OmniParserRawElementSchema.parse(el);
+        const bbox = this.normalizeBBox(raw.bbox, imageWidth, imageHeight);
 
-      throw new Error("Unexpected output format from OmniParser");
+        return {
+          id: `omni-${index}`,
+          bbox,
+          type: raw.type || raw.label,
+          text: raw.text,
+          confidence: raw.confidence,
+          source: "omniparser" as const,
+        };
+      });
     } catch (error) {
-      // Return empty result if parsing fails
-      console.warn("Failed to parse OmniParser output:", error);
-      return {
-        elements: [],
-        image_width: 0,
-        image_height: 0,
-      };
+      // Persist raw string to disk for inspection
+      this.dumpFailedParse(elementsRaw, error);
+
+      const message =
+        error instanceof Error ? error.message : "Unknown parse error";
+      throw new Error(
+        `Failed to parse OmniParser elements: ${message}. Raw output dumped for inspection.`
+      );
+    }
+  }
+
+  /**
+   * Normalize bbox to consistent {x, y, width, height} format
+   * Ensures coordinates are in ORIGINAL pixel space
+   */
+  private normalizeBBox(
+    bbox: z.infer<typeof OmniParserBBoxSchema> | number[],
+    imageWidth: number,
+    imageHeight: number
+  ): OmniParserBBox {
+    if (Array.isArray(bbox)) {
+      // Format: [x, y, w, h] - could be normalized (0-1) or pixel coords
+      let [x, y, w, h] = bbox;
+
+      // If values are all <= 1, assume normalized coords
+      if (x <= 1 && y <= 1 && w <= 1 && h <= 1) {
+        x = Math.round(x * imageWidth);
+        y = Math.round(y * imageHeight);
+        w = Math.round(w * imageWidth);
+        h = Math.round(h * imageHeight);
+      }
+
+      return { x, y, width: w, height: h };
+    }
+
+    // Already in correct format - verify it's in pixel space
+    let { x, y, width, height } = bbox;
+
+    if (x <= 1 && y <= 1 && width <= 1 && height <= 1) {
+      // Normalized coords, convert to pixels
+      x = Math.round(x * imageWidth);
+      y = Math.round(y * imageHeight);
+      width = Math.round(width * imageWidth);
+      height = Math.round(height * imageHeight);
+    }
+
+    return { x, y, width, height };
+  }
+
+  /**
+   * Dump failed parse output to disk for debugging
+   */
+  private dumpFailedParse(rawOutput: string, error: unknown): void {
+    const outputDir = this.debugOutputDir || "/tmp/omniparser-debug";
+
+    try {
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const dumpPath = path.join(outputDir, `parse-failure-${timestamp}.json`);
+
+      const dumpContent = JSON.stringify(
+        {
+          timestamp: new Date().toISOString(),
+          error: error instanceof Error ? error.message : String(error),
+          rawOutput,
+        },
+        null,
+        2
+      );
+
+      fs.writeFileSync(dumpPath, dumpContent);
+      console.error(`[OmniParser] Raw output dumped to: ${dumpPath}`);
+    } catch (dumpError) {
+      console.error("[OmniParser] Failed to dump raw output:", dumpError);
     }
   }
 
@@ -162,8 +354,6 @@ export class OmniParserClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      // Just check if we can access the API
-      // A simple way is to try to get model info
       const models = await this.replicate.models.list();
       return Array.isArray(models.results);
     } catch {

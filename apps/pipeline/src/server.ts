@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { healthRouter } from "./routes/health.js";
 import { sessionsRouter } from "./routes/sessions.js";
+import { parseRouter } from "./routes/parse.js";
 import { validateEnv } from "./config/env.js";
 
 // Validate required environment variables
@@ -17,6 +18,7 @@ app.use(express.json({ limit: "50mb" }));
 // Routes
 app.use("/api/health", healthRouter);
 app.use("/api/sessions", sessionsRouter);
+app.use("/api/parse", parseRouter);
 
 // Error handling
 app.use(

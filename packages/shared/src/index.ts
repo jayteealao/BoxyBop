@@ -7,9 +7,12 @@
 export {
   OmniParserClient,
   createOmniParserClient,
+  OmniParserInputSchema,
   OmniParserBBoxSchema,
+  OmniParserRawElementSchema,
   OmniParserElementSchema,
   OmniParserResponseSchema,
+  type OmniParserInput,
   type OmniParserBBox,
   type OmniParserElement,
   type OmniParserResponse,
