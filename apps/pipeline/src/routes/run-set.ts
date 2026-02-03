@@ -912,3 +912,243 @@ runSetRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Respo
     });
   }
 });
+
+// =============================================================================
+// Status & Data Endpoints
+// =============================================================================
+
+/**
+ * GET /api/run-set/:runId/status
+ *
+ * Get pipeline run status for polling.
+ */
+runSetRouter.get("/:runId/status", async (req: Request, res: Response): Promise<void> => {
+  const { runId } = req.params;
+  const runsDir = "./runs";
+  const irPath = path.join(runsDir, runId, "ir.json");
+
+  try {
+    const content = await fs.readFile(irPath, "utf-8");
+    const ir = JSON.parse(content);
+
+    // Build status response
+    const response = {
+      runId,
+      setId: ir.setId,
+      status: "complete" as const,
+      stages: {
+        style: { status: "complete" as const, latencyMs: ir.pipelineMetadata?.styleLatencyMs },
+        parse: { status: "complete" as const, latencyMs: ir.pipelineMetadata?.parseLatencyMs },
+        crop: { status: "complete" as const },
+        analysis: { status: "complete" as const, latencyMs: ir.pipelineMetadata?.cropAnalysisLatencyMs },
+      },
+      summary: {
+        imagesProcessed: ir.images?.length ?? 0,
+        elementsDetected: Object.values(ir.omniparserResults ?? {}).reduce<number>(
+          (acc, els) => acc + (Array.isArray(els) ? els.length : 0),
+          0
+        ),
+        cropsGenerated: ir.cropSpecs?.length ?? 0,
+        cropsAnalyzed: ir.cropAnalyses?.length ?? 0,
+      },
+      createdAt: ir.createdAt,
+    };
+
+    res.json(response);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      res.status(404).json({ error: "Run not found", runId });
+    } else {
+      res.status(500).json({ error: "Failed to read run status" });
+    }
+  }
+});
+
+/**
+ * GET /api/run-set/:runId/crops
+ *
+ * Get auto-crops from a pipeline run for gallery display.
+ */
+runSetRouter.get("/:runId/crops", async (req: Request, res: Response): Promise<void> => {
+  const { runId } = req.params;
+  const runsDir = "./runs";
+  const irPath = path.join(runsDir, runId, "ir.json");
+  const cropsDir = path.join(runsDir, runId, "crops");
+
+  try {
+    const content = await fs.readFile(irPath, "utf-8");
+    const ir = JSON.parse(content);
+
+    const crops: Array<{
+      id: string;
+      cropSpecId: string;
+      imageId: string;
+      elementType: string;
+      dimensions: { width: number; height: number };
+      thumbnailBase64?: string;
+      label?: string;
+    }> = [];
+
+    for (const spec of ir.cropSpecs ?? []) {
+      const artifact = (ir.cropArtifacts ?? []).find(
+        (a: { cropSpecId: string }) => a.cropSpecId === spec.id
+      );
+
+      if (!artifact) continue;
+
+      // Try to read crop thumbnail
+      let thumbnailBase64: string | undefined;
+      try {
+        const cropPath = path.join(cropsDir, `${spec.id}.png`);
+        const cropData = await fs.readFile(cropPath);
+        thumbnailBase64 = cropData.toString("base64");
+      } catch {
+        // Thumbnail not available
+      }
+
+      // Get element type from analysis if available
+      const analysis = (ir.cropAnalyses ?? []).find(
+        (a: { cropId: string }) => a.cropId === spec.id
+      );
+
+      crops.push({
+        id: artifact.id,
+        cropSpecId: spec.id,
+        imageId: spec.imageId,
+        elementType: analysis?.category ?? spec.label ?? "unknown",
+        dimensions: artifact.dimensions,
+        thumbnailBase64,
+        label: spec.label,
+      });
+    }
+
+    res.json({ runId, crops });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      res.status(404).json({ error: "Run not found", runId });
+    } else {
+      res.status(500).json({ error: "Failed to read crops" });
+    }
+  }
+});
+
+/**
+ * GET /api/run-set/:runId/overlay/:imageId
+ *
+ * Get OmniParser overlay data for a specific image.
+ */
+runSetRouter.get("/:runId/overlay/:imageId", async (req: Request, res: Response): Promise<void> => {
+  const { runId, imageId } = req.params;
+  const runsDir = "./runs";
+  const irPath = path.join(runsDir, runId, "ir.json");
+
+  try {
+    const content = await fs.readFile(irPath, "utf-8");
+    const ir = JSON.parse(content);
+
+    // Find image metadata
+    const image = (ir.images ?? []).find((img: { id: string }) => img.id === imageId);
+    if (!image) {
+      res.status(404).json({ error: "Image not found in run", imageId, runId });
+      return;
+    }
+
+    // Get elements for this image
+    const elements = ir.omniparserResults?.[imageId] ?? [];
+
+    res.json({
+      imageId,
+      width: image.dimensions.width,
+      height: image.dimensions.height,
+      elements: elements.map((el: {
+        id: string;
+        bbox: { x: number; y: number; width: number; height: number };
+        elementType: string;
+        confidence: number;
+        rawLabel?: string;
+      }) => ({
+        id: el.id,
+        bbox: el.bbox,
+        type: el.elementType,
+        confidence: el.confidence,
+        label: el.rawLabel,
+      })),
+    });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      res.status(404).json({ error: "Run not found", runId });
+    } else {
+      res.status(500).json({ error: "Failed to read overlay data" });
+    }
+  }
+});
+
+/**
+ * POST /api/run-set/:runId/retry/:stage
+ *
+ * Retry a specific pipeline stage.
+ * Currently only supports 'analysis' stage retry.
+ */
+runSetRouter.post("/:runId/retry/:stage", async (req: Request, res: Response): Promise<void> => {
+  const { runId, stage } = req.params;
+  const logger = getRequestLogger(req, "RunSet");
+
+  // Only analysis retry is supported for now
+  if (stage !== "analysis") {
+    res.status(400).json({
+      error: "Unsupported retry stage",
+      message: `Stage '${stage}' cannot be retried. Only 'analysis' is supported.`,
+      supportedStages: ["analysis"],
+    });
+    return;
+  }
+
+  const runsDir = "./runs";
+  const irPath = path.join(runsDir, runId, "ir.json");
+
+  try {
+    const content = await fs.readFile(irPath, "utf-8");
+    const ir = JSON.parse(content);
+
+    // Find crops that failed analysis
+    const analyzedCropIds = new Set(
+      (ir.cropAnalyses ?? []).map((a: { cropId: string }) => a.cropId)
+    );
+
+    const failedCropSpecs = (ir.cropSpecs ?? []).filter(
+      (spec: { id: string }) => !analyzedCropIds.has(spec.id)
+    );
+
+    if (failedCropSpecs.length === 0) {
+      res.json({
+        runId,
+        stage,
+        message: "No failed crops to retry",
+        retried: 0,
+      });
+      return;
+    }
+
+    logger.info("Retrying failed crop analysis", {
+      runId,
+      failedCount: failedCropSpecs.length,
+    });
+
+    // Note: Full retry implementation would re-run analyzeCrops
+    // For now, we return info about what would be retried
+    res.json({
+      runId,
+      stage,
+      message: `Found ${failedCropSpecs.length} crops to retry. Full retry not yet implemented.`,
+      failedCropIds: failedCropSpecs.map((s: { id: string }) => s.id),
+      retried: 0,
+    });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      res.status(404).json({ error: "Run not found", runId });
+    } else {
+      logger.error("Retry failed", err, { runId, stage });
+      res.status(500).json({ error: "Failed to retry stage" });
+    }
+  }
+});

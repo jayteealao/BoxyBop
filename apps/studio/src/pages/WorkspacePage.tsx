@@ -1,24 +1,39 @@
 /**
- * Workspace Page - Upload images, detect elements, create crops, generate library.
+ * Workspace Page - Upload images, run pipeline, view results.
  *
- * This is the refactored version of the original App.tsx functionality,
- * now using Tailwind CSS and consistent UI patterns.
+ * This page provides the main workflow:
+ * 1. Upload screenshots
+ * 2. Run full pipeline (style analysis + OmniParser + crop analysis)
+ * 3. View results (overlays, auto-crops, style guide)
+ * 4. Generate component library
+ *
+ * NOTE: Manual cropping has been removed. All crops are auto-generated
+ * from OmniParser detected elements.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { Card, CardHeader } from "../components/ui";
 import { ImageUploader } from "../components/ImageUploader";
+import { ImageThumbnailGrid } from "../components/ImageThumbnailGrid";
+import { ImageSetHeader } from "../components/ImageSetHeader";
 import { BoundingBoxOverlay } from "../components/BoundingBoxOverlay";
-import { CropEditor } from "../components/CropEditor";
-import { GenerateLibraryPanel } from "../components/GenerateLibraryPanel";
-import { generateCrop } from "../lib/cropGenerator";
+import { OmniParserOverlayViewer } from "../components/OmniParserOverlayViewer";
+import { AutoCropGallery, type AutoCrop } from "../components/AutoCropGallery";
+import { StyleGuidePreview, type StyleTokens } from "../components/StyleGuidePreview";
+import {
+  PipelineTimeline,
+  createDefaultStages,
+  updateStageStatus,
+  type PipelineStage,
+  type PipelineLog,
+} from "../components/PipelineTimeline";
+import { ImageStageTable, type ImageStageStatus } from "../components/ImageStageTable";
 import type {
   StudioImage,
   DetectedElement,
   ParseResult,
-  CropSpec,
-  CropArtifact,
-  BBox,
+  RunSetResponse,
+  CodegenResponse,
 } from "../types/studio";
 
 interface HealthStatus {
@@ -30,48 +45,47 @@ interface HealthStatus {
   };
 }
 
-interface StyleAnalysisResult {
-  styleRunId: string;
-  geminiAnalysisId: string;
-  lockedStyleGuideId: string;
-  latency: {
-    geminiMs: number;
-    claudeMs: number;
-    totalMs: number;
-  };
-}
-
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
+
+type ViewMode = "grid" | "overlay" | "crops" | "style";
 
 export function WorkspacePage() {
   // Images state
   const [images, setImages] = useState<StudioImage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [createdAt] = useState(() => new Date());
 
-  // Elements per image
-  const [elementsMap, setElementsMap] = useState<Map<string, DetectedElement[]>>(
-    new Map()
-  );
+  // Elements per image (from OmniParser)
+  const [elementsMap, setElementsMap] = useState<Map<string, DetectedElement[]>>(new Map());
 
-  // Selection
+  // Selection (read-only, for viewing element details)
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
-  // Crop state
-  const [cropMode, setCropMode] = useState(false);
-  const [currentCropRegion, setCurrentCropRegion] = useState<BBox | null>(null);
-  const [crops, setCrops] = useState<Map<string, CropSpec[]>>(new Map());
-  const [artifacts, setArtifacts] = useState<Map<string, CropArtifact>>(new Map());
+  // Pipeline state
+  const [isRunningPipeline, setIsRunningPipeline] = useState(false);
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>(createDefaultStages());
+  const [pipelineLogs, setPipelineLogs] = useState<PipelineLog[]>([]);
+  const [pipelineResult, setPipelineResult] = useState<RunSetResponse | null>(null);
+  const [codegenResult, setCodegenResult] = useState<CodegenResponse | null>(null);
+
+  // Per-image status tracking
+  const [imageStageStatuses, setImageStageStatuses] = useState<Map<string, ImageStageStatus>>(new Map());
+
+  // Auto-crops (generated from pipeline)
+  const [autoCrops, setAutoCrops] = useState<AutoCrop[]>([]);
+
+  // Style tokens (from pipeline)
+  const [styleTokens, setStyleTokens] = useState<StyleTokens | null>(null);
+  const [tokensHash, setTokensHash] = useState<string>("");
+  const [styleRunId, setStyleRunId] = useState<string>("");
 
   // UI state
-  const [isLoading, setIsLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isAnalyzingStyle, _setIsAnalyzingStyle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [health, setHealth] = useState<HealthStatus | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [styleAnalysis, _setStyleAnalysis] = useState<StyleAnalysisResult | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [setSlug, setSetSlug] = useState("");
 
   // Check health on mount
   useEffect(() => {
@@ -82,23 +96,64 @@ export function WorkspacePage() {
   }, []);
 
   const currentImage = images[currentIndex] ?? null;
-  const currentElements = currentImage
-    ? elementsMap.get(currentImage.id) ?? []
-    : [];
-  const currentCrops = currentImage ? crops.get(currentImage.id) ?? [] : [];
+  const currentElements = currentImage ? elementsMap.get(currentImage.id) ?? [] : [];
 
   const handleImagesAdded = useCallback((newImages: StudioImage[]) => {
     setImages((prev) => [...prev, ...newImages]);
     setError(null);
+    // Reset pipeline state when new images are added
+    setPipelineStages(createDefaultStages());
+    setPipelineLogs([]);
+    setPipelineResult(null);
+    setCodegenResult(null);
+    setAutoCrops([]);
+    setStyleTokens(null);
   }, []);
 
+  const handleSelectImage = useCallback((index: number) => {
+    setCurrentIndex(index);
+    setSelectedElementId(null);
+  }, []);
+
+  const handleSelectElement = useCallback((id: string | null) => {
+    setSelectedElementId(id);
+  }, []);
+
+  const handleRemoveImage = useCallback(() => {
+    if (!currentImage) return;
+    setImages((prev) => prev.filter((img) => img.id !== currentImage.id));
+    setElementsMap((prev) => {
+      const next = new Map(prev);
+      next.delete(currentImage.id);
+      return next;
+    });
+    setCurrentIndex((i) => Math.max(0, i - 1));
+    setSelectedElementId(null);
+  }, [currentImage]);
+
+  const addLog = useCallback((level: PipelineLog["level"], message: string, stage?: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setPipelineLogs((prev) => [...prev, { timestamp, level, message, stage }]);
+  }, []);
+
+  // Run OmniParser on a single image (for preview)
   const handleRunOmniParser = useCallback(async () => {
     if (!currentImage) return;
 
-    setIsLoading(true);
     setError(null);
     setSelectedElementId(null);
-    setCropMode(false);
+    addLog("info", `Parsing ${currentImage.filename}...`, "parse");
+
+    // Update image status
+    setImageStageStatuses((prev) => {
+      const next = new Map(prev);
+      next.set(currentImage.id, {
+        imageId: currentImage.id,
+        parseStatus: "parsing",
+        analysisStatus: "pending",
+      });
+      return next;
+    });
 
     try {
       const response = await fetch("/api/parse", {
@@ -124,130 +179,197 @@ export function WorkspacePage() {
         next.set(currentImage.id, result.elements);
         return next;
       });
+
+      // Update image status
+      setImageStageStatuses((prev) => {
+        const next = new Map(prev);
+        const existing = next.get(currentImage.id);
+        next.set(currentImage.id, {
+          ...existing,
+          imageId: currentImage.id,
+          parseStatus: "complete",
+          boxCount: result.elements.length,
+          analysisStatus: existing?.analysisStatus ?? "pending",
+        });
+        return next;
+      });
+
+      addLog("info", `Found ${result.elements.length} elements in ${currentImage.filename}`, "parse");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);
-    } finally {
-      setIsLoading(false);
+      addLog("error", message, "parse");
+
+      // Update image status
+      setImageStageStatuses((prev) => {
+        const next = new Map(prev);
+        next.set(currentImage.id, {
+          imageId: currentImage.id,
+          parseStatus: "failed",
+          analysisStatus: "pending",
+          error: message,
+        });
+        return next;
+      });
     }
-  }, [currentImage]);
+  }, [currentImage, addLog]);
 
-  const handleSelectElement = useCallback((id: string | null) => {
-    setSelectedElementId(id);
-    setCropMode(false);
-  }, []);
+  // Run full pipeline
+  const handleRunPipeline = useCallback(async () => {
+    if (images.length === 0 || !setSlug.trim()) return;
 
-  const handleStartCrop = useCallback(() => {
-    if (!selectedElementId || !currentImage) return;
-
-    const element = currentElements.find((e) => e.id === selectedElementId);
-    if (!element) return;
-
-    setCurrentCropRegion({ ...element.bbox });
-    setCropMode(true);
-  }, [selectedElementId, currentElements, currentImage]);
-
-  const handleCropRegionChange = useCallback((region: BBox) => {
-    setCurrentCropRegion(region);
-  }, []);
-
-  const handleCropCancel = useCallback(() => {
-    setCropMode(false);
-    setCurrentCropRegion(null);
-  }, []);
-
-  const handleCropConfirm = useCallback(async () => {
-    if (!currentImage || !currentCropRegion) return;
-
-    setIsLoading(true);
+    setIsRunningPipeline(true);
     setError(null);
+    setPipelineStages(createDefaultStages());
+    setPipelineLogs([]);
+    setPipelineResult(null);
+    setCodegenResult(null);
+
+    const setId = `set-${generateId()}`;
+    const slug = setSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    const startTime = Date.now();
 
     try {
-      const cropResult = await generateCrop(currentImage.dataUrl, currentCropRegion);
+      // Update stage: queued -> style
+      setPipelineStages((stages) => updateStageStatus(stages, "queue", { status: "complete", latencyMs: 0 }));
+      setPipelineStages((stages) => updateStageStatus(stages, "style", { status: "running", startedAt: new Date().toISOString() }));
+      addLog("info", `Starting pipeline for ${images.length} images...`, "style");
 
-      const cropSpecId = `crop-${generateId()}`;
-      const now = new Date().toISOString();
-
-      const spec: CropSpec = {
-        id: cropSpecId,
-        imageId: currentImage.id,
-        sourceElementId: selectedElementId ?? undefined,
-        region: currentCropRegion,
-        humanAdjusted: true,
-        updatedAt: now,
-      };
-
-      const artifact: CropArtifact = {
-        id: `artifact-${generateId()}`,
-        cropSpecId,
-        sourceImageId: currentImage.id,
-        pngBase64: cropResult.pngBase64,
-        dataUrl: cropResult.dataUrl,
-        contentHash: cropResult.sha256,
-        dimensions: cropResult.dimensions,
-        fileSizeBytes: cropResult.sizeBytes,
-        createdAt: now,
-      };
-
-      setCrops((prev) => {
-        const next = new Map(prev);
-        const existing = next.get(currentImage.id) ?? [];
-        next.set(currentImage.id, [...existing, spec]);
-        return next;
+      // Run pipeline
+      const pipelineResponse = await fetch("/api/run-set", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          setId,
+          images: images.map((img) => ({
+            id: img.id,
+            base64: img.base64,
+            mimeType: img.mimeType,
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+          })),
+        }),
       });
 
-      setArtifacts((prev) => {
-        const next = new Map(prev);
-        next.set(cropSpecId, artifact);
-        return next;
+      if (!pipelineResponse.ok) {
+        const errBody = await pipelineResponse.json().catch(() => ({}));
+        throw new Error(errBody.message || `Pipeline failed: ${pipelineResponse.status}`);
+      }
+
+      const result: RunSetResponse = await pipelineResponse.json();
+      setPipelineResult(result);
+      setStyleRunId(result.styleRunId);
+      setTokensHash(result.summary.tokensHash);
+
+      // Update stages
+      setPipelineStages((stages) => {
+        let updated = updateStageStatus(stages, "style", {
+          status: "complete",
+          latencyMs: result.latency.styleMs,
+        });
+        updated = updateStageStatus(updated, "parse", {
+          status: "complete",
+          latencyMs: result.latency.parseMs,
+        });
+        updated = updateStageStatus(updated, "crop", { status: "complete" });
+        updated = updateStageStatus(updated, "analysis", {
+          status: "complete",
+          latencyMs: result.latency.cropAnalysisMs,
+        });
+        updated = updateStageStatus(updated, "ir", { status: "complete" });
+        return updated;
       });
 
-      setCropMode(false);
-      setCurrentCropRegion(null);
-      setSelectedElementId(null);
+      addLog("info", `Pipeline complete: ${result.summary.elementsDetected} elements, ${result.summary.cropsAnalyzed} crops`, "ir");
+      addLog("info", `Tokens locked: ${result.summary.tokensHash.slice(0, 12)}...`, "style");
+
+      // Fetch style tokens for preview
+      try {
+        const tokensResponse = await fetch(`/api/analyze-style-set/${result.styleRunId}/locked-tokens`);
+        if (tokensResponse.ok) {
+          const lockedTokens = await tokensResponse.json();
+          setStyleTokens({
+            colors: lockedTokens.tokens?.colors || [],
+            typography: lockedTokens.tokens?.typography || [],
+            spacing: lockedTokens.tokens?.spacing || [],
+            radius: lockedTokens.tokens?.radius || [],
+            shadows: lockedTokens.tokens?.shadows || [],
+          });
+        }
+      } catch {
+        // Tokens preview not critical
+      }
+
+      // Run codegen
+      setPipelineStages((stages) => updateStageStatus(stages, "codegen", { status: "running" }));
+      addLog("info", "Starting component generation...", "codegen");
+
+      const codegenResponse = await fetch("/api/codegen/v2", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          runId: result.runId,
+          setSlug: slug,
+        }),
+      });
+
+      if (!codegenResponse.ok) {
+        const errBody = await codegenResponse.json().catch(() => ({}));
+        throw new Error(errBody.message || `Codegen failed: ${codegenResponse.status}`);
+      }
+
+      const codegenData: CodegenResponse = await codegenResponse.json();
+      setCodegenResult(codegenData);
+
+      setPipelineStages((stages) => updateStageStatus(stages, "codegen", {
+        status: "complete",
+        latencyMs: codegenData.latencyMs,
+      }));
+
+      addLog("info", `Codegen complete: ${codegenData.progress.complete}/${codegenData.progress.total} components`, "codegen");
+
+      if (codegenData.errors.length > 0) {
+        addLog("warn", `${codegenData.errors.length} components failed`, "codegen");
+      }
+
+      const totalTime = Date.now() - startTime;
+      addLog("info", `Library generated in ${(totalTime / 1000).toFixed(1)}s`, "codegen");
+
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Crop failed";
+      const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);
+      addLog("error", message);
+
+      // Mark current stage as failed
+      setPipelineStages((stages) => {
+        const runningStage = stages.find((s) => s.status === "running");
+        if (runningStage) {
+          return updateStageStatus(stages, runningStage.id, { status: "failed", error: message });
+        }
+        return stages;
+      });
     } finally {
-      setIsLoading(false);
+      setIsRunningPipeline(false);
     }
-  }, [currentImage, currentCropRegion, selectedElementId]);
-
-  const handlePrevImage = useCallback(() => {
-    setCurrentIndex((i) => Math.max(0, i - 1));
-    setSelectedElementId(null);
-    setCropMode(false);
-  }, []);
-
-  const handleNextImage = useCallback(() => {
-    setCurrentIndex((i) => Math.min(images.length - 1, i + 1));
-    setSelectedElementId(null);
-    setCropMode(false);
-  }, [images.length]);
-
-  const handleRemoveImage = useCallback(() => {
-    if (!currentImage) return;
-    setImages((prev) => prev.filter((img) => img.id !== currentImage.id));
-    setElementsMap((prev) => {
-      const next = new Map(prev);
-      next.delete(currentImage.id);
-      return next;
-    });
-    setCrops((prev) => {
-      const next = new Map(prev);
-      next.delete(currentImage.id);
-      return next;
-    });
-    setCurrentIndex((i) => Math.max(0, i - 1));
-    setSelectedElementId(null);
-    setCropMode(false);
-  }, [currentImage]);
+  }, [images, setSlug, addLog]);
 
   const selectedElement = selectedElementId
     ? currentElements.find((e) => e.id === selectedElementId)
     : null;
 
   const replicateConfigured = health?.services?.replicate === "configured";
+
+  // Calculate total elements across all images
+  const totalElements = useMemo(() => {
+    let count = 0;
+    for (const elements of elementsMap.values()) {
+      count += elements.length;
+    }
+    return count;
+  }, [elementsMap]);
+
+  const isPipelineComplete = pipelineResult !== null;
+  const canGenerateLibrary = images.length > 0 && setSlug.trim() && !isRunningPipeline;
 
   return (
     <div className="space-y-6">
@@ -257,132 +379,175 @@ export function WorkspacePage() {
           Workspace
         </h1>
         <p className="mt-1 text-ink-secondary">
-          Upload screenshots, detect UI elements, and generate component libraries.
+          Upload screenshots, run the pipeline, and generate component libraries.
         </p>
       </div>
 
       {/* Status bar */}
       <div className="flex items-center gap-4 text-sm">
         {health ? (
-          <span
-            className={
-              replicateConfigured ? "text-success" : "text-warning"
-            }
-          >
+          <span className={replicateConfigured ? "text-success" : "text-warning"}>
             <span className="inline-block w-2 h-2 rounded-full bg-current mr-2" />
             OmniParser: {replicateConfigured ? "Ready" : "Not configured"}
           </span>
         ) : (
-          <span className="text-ink-muted animate-pulse">
-            Checking pipeline...
+          <span className="text-ink-muted animate-pulse">Checking pipeline...</span>
+        )}
+        {totalElements > 0 && (
+          <span className="text-ink-muted">
+            {totalElements} elements detected
           </span>
         )}
       </div>
 
+      {/* Image Set Header (when images uploaded) */}
+      {images.length > 0 && (
+        <ImageSetHeader
+          images={images}
+          createdAt={createdAt}
+          styleRunId={styleRunId || undefined}
+          runId={pipelineResult?.runId}
+          isLoading={isRunningPipeline}
+          replicateConfigured={replicateConfigured}
+        />
+      )}
+
       {/* Main layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Image viewer / Crop editor */}
+        {/* Left: Image viewer / Results */}
         <div className="lg:col-span-2 space-y-4">
-          {currentImage ? (
-            <Card padding="sm">
-              {/* Navigation */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handlePrevImage}
-                    disabled={currentIndex === 0 || cropMode}
-                    className="btn-ghost px-3 py-1.5 text-sm"
-                  >
-                    Prev
-                  </button>
-                  <span className="text-sm text-ink-muted font-mono">
-                    {currentIndex + 1} / {images.length}
-                  </span>
-                  <button
-                    onClick={handleNextImage}
-                    disabled={currentIndex >= images.length - 1 || cropMode}
-                    className="btn-ghost px-3 py-1.5 text-sm"
-                  >
-                    Next
-                  </button>
-                </div>
+          {/* Upload area (when no images) */}
+          {images.length === 0 && (
+            <Card>
+              <ImageUploader onImagesAdded={handleImagesAdded} disabled={isRunningPipeline} />
+            </Card>
+          )}
+
+          {/* View mode tabs */}
+          {images.length > 0 && (
+            <div className="flex items-center gap-2 border-b border-studio-border pb-2">
+              {[
+                { id: "grid" as ViewMode, label: "Images", icon: "grid" },
+                { id: "overlay" as ViewMode, label: "Overlay", icon: "layers", disabled: !currentImage },
+                { id: "crops" as ViewMode, label: "Auto-Crops", icon: "crop", disabled: autoCrops.length === 0 },
+                { id: "style" as ViewMode, label: "Style Guide", icon: "palette", disabled: !styleTokens },
+              ].map((tab) => (
                 <button
-                  onClick={handleRemoveImage}
-                  disabled={cropMode}
-                  className="btn-danger px-3 py-1.5 text-sm"
+                  key={tab.id}
+                  onClick={() => setViewMode(tab.id)}
+                  disabled={tab.disabled}
+                  className={`
+                    px-3 py-1.5 text-sm rounded-lg transition-colors
+                    ${viewMode === tab.id
+                      ? "bg-accent text-white"
+                      : "text-ink-muted hover:text-ink-primary hover:bg-studio-surface"
+                    }
+                    ${tab.disabled ? "opacity-50 cursor-not-allowed" : ""}
+                  `}
                 >
-                  Remove
+                  {tab.label}
                 </button>
-              </div>
+              ))}
+            </div>
+          )}
 
-              {/* Image viewer */}
-              <div className="bg-studio-bg rounded-lg p-2">
-                {cropMode && currentCropRegion ? (
-                  <CropEditor
-                    image={currentImage}
-                    initialRegion={currentCropRegion}
-                    onRegionChange={handleCropRegionChange}
-                    onCancel={handleCropCancel}
-                    onConfirm={handleCropConfirm}
-                  />
-                ) : (
-                  <BoundingBoxOverlay
-                    image={currentImage}
-                    elements={currentElements}
-                    selectedId={selectedElementId}
-                    onSelectElement={handleSelectElement}
-                  />
-                )}
-              </div>
+          {/* Grid view */}
+          {images.length > 0 && viewMode === "grid" && (
+            <Card>
+              <ImageThumbnailGrid
+                images={images}
+                elementsMap={elementsMap}
+                currentIndex={currentIndex}
+                onSelectImage={handleSelectImage}
+                parseStatus={new Map(Array.from(imageStageStatuses.entries()).map(([id, status]) => [id, status.parseStatus]))}
+              />
 
-              {/* Actions */}
-              {!cropMode && (
-                <div className="flex items-center gap-3 mt-4 flex-wrap">
-                  <button
-                    onClick={handleRunOmniParser}
-                    disabled={isLoading || isAnalyzingStyle || !replicateConfigured}
-                    className="btn-primary"
-                  >
-                    {isLoading ? "Processing..." : "Run OmniParser"}
-                  </button>
-                  {selectedElement && (
-                    <button
-                      onClick={handleStartCrop}
-                      disabled={isLoading}
-                      className="btn-secondary"
-                    >
-                      Edit Crop
-                    </button>
-                  )}
+              {/* Current image preview */}
+              {currentImage && (
+                <div className="mt-4 pt-4 border-t border-studio-border">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-ink-primary">
+                        {currentImage.filename}
+                      </span>
+                      <span className="text-xs text-ink-muted">
+                        {currentImage.naturalWidth}×{currentImage.naturalHeight}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleRunOmniParser}
+                        disabled={isRunningPipeline || !replicateConfigured}
+                        className="btn-secondary text-xs"
+                      >
+                        Parse Image
+                      </button>
+                      <button
+                        onClick={handleRemoveImage}
+                        disabled={isRunningPipeline}
+                        className="btn-ghost text-xs text-danger"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-studio-bg rounded-lg p-2">
+                    <BoundingBoxOverlay
+                      image={currentImage}
+                      elements={currentElements}
+                      selectedId={selectedElementId}
+                      onSelectElement={handleSelectElement}
+                    />
+                  </div>
+
                   {currentElements.length > 0 && (
-                    <span className="text-sm text-ink-muted">
-                      {currentElements.length} elements
-                    </span>
+                    <p className="text-xs text-ink-muted mt-2">
+                      {currentElements.length} elements • Click to select
+                    </p>
                   )}
-                  {currentCrops.length > 0 && (
-                    <span className="text-sm text-success">
-                      {currentCrops.length} crops
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {error && (
-                <div className="mt-4 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
-                  {error}
                 </div>
               )}
             </Card>
-          ) : (
+          )}
+
+          {/* Overlay view */}
+          {images.length > 0 && viewMode === "overlay" && currentImage && (
             <Card>
-              <ImageUploader onImagesAdded={handleImagesAdded} disabled={isLoading} />
+              <OmniParserOverlayViewer
+                image={currentImage}
+                elements={currentElements}
+                onClose={() => setViewMode("grid")}
+              />
+            </Card>
+          )}
+
+          {/* Auto-crops view */}
+          {viewMode === "crops" && (
+            <Card>
+              <AutoCropGallery crops={autoCrops} />
+            </Card>
+          )}
+
+          {/* Style guide view */}
+          {viewMode === "style" && styleTokens && (
+            <Card>
+              <StyleGuidePreview
+                tokens={styleTokens}
+                tokensHash={tokensHash}
+                styleRunId={styleRunId}
+              />
             </Card>
           )}
 
           {/* Add more images */}
-          {images.length > 0 && !cropMode && (
+          {images.length > 0 && (
             <Card padding="sm">
-              <ImageUploader onImagesAdded={handleImagesAdded} disabled={isLoading} />
+              <ImageUploader
+                onImagesAdded={handleImagesAdded}
+                disabled={isRunningPipeline}
+                compact
+              />
             </Card>
           )}
         </div>
@@ -390,9 +555,9 @@ export function WorkspacePage() {
         {/* Right: Sidebar */}
         <div className="space-y-4">
           {/* Selection details */}
-          <Card>
-            <CardHeader title="Selection" />
-            {selectedElement && !cropMode ? (
+          {selectedElement && (
+            <Card>
+              <CardHeader title="Selected Element" />
               <div className="space-y-3 text-sm">
                 <div>
                   <span className="text-ink-muted">Type:</span>{" "}
@@ -415,133 +580,139 @@ export function WorkspacePage() {
                 <div>
                   <span className="text-ink-muted">BBox (px):</span>
                   <pre className="mt-1 p-3 bg-studio-bg rounded-lg text-2xs font-mono text-ink-secondary">
-{`x: ${selectedElement.bbox.x}
-y: ${selectedElement.bbox.y}
-w: ${selectedElement.bbox.width}
-h: ${selectedElement.bbox.height}`}
+{`x: ${Math.round(selectedElement.bbox.x)}
+y: ${Math.round(selectedElement.bbox.y)}
+w: ${Math.round(selectedElement.bbox.width)}
+h: ${Math.round(selectedElement.bbox.height)}`}
                   </pre>
                 </div>
-              </div>
-            ) : cropMode && currentCropRegion ? (
-              <div className="space-y-3 text-sm">
-                <p className="text-success font-medium">Editing crop region</p>
-                <div>
-                  <span className="text-ink-muted">Region (px):</span>
-                  <pre className="mt-1 p-3 bg-studio-bg rounded-lg text-2xs font-mono text-ink-secondary">
-{`x: ${Math.round(currentCropRegion.x)}
-y: ${Math.round(currentCropRegion.y)}
-w: ${Math.round(currentCropRegion.width)}
-h: ${Math.round(currentCropRegion.height)}`}
-                  </pre>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-ink-muted">
-                Select an element to create a crop
-              </p>
-            )}
-          </Card>
-
-          {/* Crop previews */}
-          {currentCrops.length > 0 && (
-            <Card>
-              <CardHeader title={`Crops (${currentCrops.length})`} />
-              <div className="space-y-2">
-                {currentCrops.map((crop) => {
-                  const artifact = artifacts.get(crop.id);
-                  return (
-                    <div
-                      key={crop.id}
-                      className="flex gap-3 p-2 bg-studio-bg rounded-lg"
-                    >
-                      {artifact && (
-                        <img
-                          src={artifact.dataUrl}
-                          alt={`Crop ${crop.id}`}
-                          className="w-14 h-14 object-contain bg-studio-surface rounded"
-                        />
-                      )}
-                      <div className="text-2xs overflow-hidden">
-                        <p className="text-ink-primary">
-                          {artifact?.dimensions.width} × {artifact?.dimensions.height}
-                        </p>
-                        <p className="text-ink-muted">
-                          {artifact?.fileSizeBytes
-                            ? `${(artifact.fileSizeBytes / 1024).toFixed(1)} KB`
-                            : ""}
-                        </p>
-                        <p className="text-ink-disabled font-mono truncate">
-                          {artifact?.contentHash.slice(0, 12)}...
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </Card>
           )}
 
-          {/* Style Analysis Result */}
-          {styleAnalysis && (
+          {/* Pipeline control */}
+          {images.length > 0 && (
             <Card>
-              <CardHeader title="Style Analysis" />
-              <div className="space-y-2 text-sm">
+              <CardHeader title="Generate Library" />
+              <div className="space-y-4">
+                {/* Set slug input */}
                 <div>
-                  <span className="text-ink-muted">Run ID:</span>
-                  <p className="text-2xs font-mono text-ink-secondary break-all">
-                    {styleAnalysis.styleRunId}
+                  <label className="block text-xs text-ink-muted mb-1">
+                    Package name
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-ink-muted">ui-</span>
+                    <input
+                      type="text"
+                      value={setSlug}
+                      onChange={(e) => setSetSlug(e.target.value)}
+                      placeholder="my-app"
+                      disabled={isRunningPipeline}
+                      className="flex-1 px-2 py-1.5 bg-studio-bg border border-studio-border rounded text-sm text-ink-primary font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Generate button */}
+                <button
+                  onClick={handleRunPipeline}
+                  disabled={!canGenerateLibrary || !replicateConfigured}
+                  className="w-full btn-primary"
+                >
+                  {isRunningPipeline ? "Running Pipeline..." : "Run Pipeline & Generate"}
+                </button>
+
+                {/* Pipeline timeline */}
+                {(isRunningPipeline || isPipelineComplete) && (
+                  <PipelineTimeline
+                    stages={pipelineStages}
+                    logs={pipelineLogs}
+                    currentStage={pipelineStages.find((s) => s.status === "running")?.id}
+                    error={error ?? undefined}
+                  />
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Results summary */}
+          {codegenResult && (
+            <Card>
+              <CardHeader title="Library Generated" />
+              <div className="space-y-3 text-sm">
+                <div>
+                  <span className="text-ink-muted">Package:</span>
+                  <p className="font-mono text-accent">
+                    @boxybop/ui-{setSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-")}
                   </p>
                 </div>
                 <div>
-                  <span className="text-ink-muted">Latency:</span>
-                  <ul className="mt-1 text-2xs text-ink-secondary space-y-1">
-                    <li>Gemini: {styleAnalysis.latency.geminiMs}ms</li>
-                    <li>Claude: {styleAnalysis.latency.claudeMs}ms</li>
-                    <li>Total: {styleAnalysis.latency.totalMs}ms</li>
-                  </ul>
+                  <span className="text-ink-muted">Components:</span>{" "}
+                  <span className="text-ink-primary">
+                    {codegenResult.progress.complete}/{codegenResult.progress.total}
+                  </span>
+                  {codegenResult.progress.failed > 0 && (
+                    <span className="text-danger ml-2">
+                      ({codegenResult.progress.failed} failed)
+                    </span>
+                  )}
                 </div>
-                <p className="text-success text-sm font-medium">Tokens locked</p>
+                <div>
+                  <span className="text-ink-muted">Path:</span>
+                  <p className="font-mono text-2xs text-ink-secondary break-all">
+                    {codegenResult.packagePath}
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => window.open("http://localhost:6006", "_blank")}
+                    className="btn-secondary text-xs flex-1"
+                  >
+                    Open Storybook
+                  </button>
+                </div>
               </div>
             </Card>
           )}
 
-          {/* Generate Library Panel */}
-          {images.length > 0 && (
-            <GenerateLibraryPanel
-              images={images}
-              crops={crops}
-              disabled={isLoading || isAnalyzingStyle}
-            />
+          {/* Per-image status table */}
+          {images.length > 0 && imageStageStatuses.size > 0 && (
+            <Card>
+              <CardHeader title="Image Status" />
+              <ImageStageTable
+                images={images}
+                stageStatuses={imageStageStatuses}
+                elementsMap={elementsMap}
+                onViewOverlay={(imageId) => {
+                  const idx = images.findIndex((img) => img.id === imageId);
+                  if (idx >= 0) {
+                    setCurrentIndex(idx);
+                    setViewMode("overlay");
+                  }
+                }}
+              />
+            </Card>
           )}
 
-          {/* Image thumbnails */}
-          {images.length > 1 && (
-            <Card>
-              <CardHeader title="Images" />
-              <div className="flex flex-wrap gap-2">
-                {images.map((img, idx) => (
+          {/* Error display */}
+          {error && !isRunningPipeline && (
+            <Card className="bg-danger/5 border-danger/20">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-danger flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v4M12 16h.01" strokeLinecap="round" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-danger">Error</p>
+                  <p className="text-xs text-danger/80 mt-1">{error}</p>
                   <button
-                    key={img.id}
-                    onClick={() => {
-                      if (!cropMode) {
-                        setCurrentIndex(idx);
-                        setSelectedElementId(null);
-                      }
-                    }}
-                    disabled={cropMode}
-                    className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
-                      idx === currentIndex
-                        ? "border-accent shadow-glow-sm"
-                        : "border-transparent hover:border-studio-border-accent"
-                    } ${cropMode ? "opacity-50 cursor-not-allowed" : ""}`}
+                    onClick={() => setError(null)}
+                    className="text-xs text-danger/70 hover:text-danger mt-2"
                   >
-                    <img
-                      src={img.dataUrl}
-                      alt={img.filename}
-                      className="w-full h-full object-cover"
-                    />
+                    Dismiss
                   </button>
-                ))}
+                </div>
               </div>
             </Card>
           )}
