@@ -6,6 +6,9 @@
  * - Locked tokens (immutable)
  * - Minimal, focused context per component
  * - Deterministic output (temperature=0)
+ *
+ * The generator uses the master registry as the source of truth for what
+ * components need to be generated. It tracks progress in state.json.
  */
 
 import * as fs from "node:fs/promises";
@@ -33,6 +36,14 @@ import {
   resetFailedToPending,
 } from "./state.js";
 import { inferComponents } from "./inference.js";
+import {
+  initializeRegistry,
+  loadRegistry,
+  saveRegistry,
+  loadGenerationState,
+  saveGenerationState,
+} from "./registry.js";
+import type { Registry, GenerationState as RegistryGenerationState } from "@boxybop/registry";
 
 /**
  * Configuration for the generator.
@@ -527,6 +538,44 @@ export async function runGenerator(config: GeneratorConfig): Promise<GeneratorRe
 
   // Ensure output directory exists
   await fs.mkdir(config.outputDir, { recursive: true });
+
+  // ==========================================================================
+  // Step 1: Initialize master registry (copied from template)
+  // ==========================================================================
+
+  let registry = await loadRegistry(config.outputDir);
+  let registryState: RegistryGenerationState | null = null;
+
+  if (!registry) {
+    console.log(`[Codegen] Initializing master registry from template...`);
+
+    // Initialize registry from template with all 100+ required components
+    const initialized = await initializeRegistry({
+      outputDir: config.outputDir,
+      setSlug: config.setSlug,
+      styleRunId: config.styleRunId,
+      lockedTokens: config.lockedTokens,
+      cropAnalyses: config.cropAnalyses,
+      // Don't include optional categories by default
+      includeOptional: [],
+    });
+
+    registry = initialized.registry;
+    registryState = initialized.state;
+
+    // Save registry immediately (it's now read-only)
+    await saveRegistry(config.outputDir, registry);
+    await saveGenerationState(config.outputDir, registryState);
+
+    console.log(`[Codegen] Registry initialized with ${registry.items.length} components`);
+  } else {
+    console.log(`[Codegen] Using existing registry (${registry.items.length} components)`);
+    registryState = await loadGenerationState(config.outputDir);
+  }
+
+  // ==========================================================================
+  // Step 2: Initialize legacy state tracking (for backward compatibility)
+  // ==========================================================================
 
   // Compute input checksum
   const inputChecksum = computeInputChecksum(config.lockedTokens, config.cropAnalyses);

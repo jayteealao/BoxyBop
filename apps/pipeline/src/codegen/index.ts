@@ -9,3 +9,22 @@ export * from "./inference.js";
 export * from "./templates.js";
 export * from "./state.js";
 export * from "./generator.js";
+
+// Registry exports - namespaced to avoid conflicts with state.js
+export {
+  initializeRegistry,
+  loadRegistry,
+  saveRegistry,
+  loadGenerationState as loadRegistryState,
+  saveGenerationState as saveRegistryState,
+  getRegistryPath,
+  getStatePath as getRegistryStatePath,
+  validateCompleteness,
+  verifyFilesExist,
+  getRegistryItem,
+  getRegistryItemsByCategory,
+  getRegistryItemsBySource,
+  getAllDependencies as getRegistryDependencies,
+  type RegistryInitConfig,
+  type RegistryValidationResult,
+} from "./registry.js";

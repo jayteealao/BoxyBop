@@ -1,0 +1,3778 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "ui-{{SET_SLUG}}",
+  "homepage": "{{HOMEPAGE}}",
+  "items": [
+    {
+      "name": "tokens",
+      "type": "registry:style",
+      "title": "Design Tokens",
+      "description": "Color, spacing, typography, radius, elevation tokens",
+      "categories": [
+        "foundations"
+      ],
+      "files": [
+        {
+          "path": "tokens.css",
+          "type": "registry:style"
+        },
+        {
+          "path": "lib/tokens.ts",
+          "type": "registry:lib"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "foundations"
+      }
+    },
+    {
+      "name": "icons",
+      "type": "registry:lib",
+      "title": "Icons",
+      "description": "Icon system and icon components",
+      "categories": [
+        "foundations"
+      ],
+      "files": [
+        {
+          "path": "lib/icons.tsx",
+          "type": "registry:lib"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "foundations"
+      }
+    },
+    {
+      "name": "box",
+      "type": "registry:ui",
+      "title": "Box",
+      "description": "Container with spacing, padding, and background support",
+      "categories": [
+        "layout"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Box/Box.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Box/Box.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "layout"
+      }
+    },
+    {
+      "name": "stack",
+      "type": "registry:ui",
+      "title": "Stack",
+      "description": "Vertical flex container with consistent gap spacing",
+      "categories": [
+        "layout"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Stack/Stack.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Stack/Stack.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "layout"
+      }
+    },
+    {
+      "name": "flex",
+      "type": "registry:ui",
+      "title": "Flex",
+      "description": "Flexible box container for horizontal and vertical layouts",
+      "categories": [
+        "layout"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Flex/Flex.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Flex/Flex.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "layout"
+      }
+    },
+    {
+      "name": "grid",
+      "type": "registry:ui",
+      "title": "Grid",
+      "description": "CSS Grid container for complex two-dimensional layouts",
+      "categories": [
+        "layout"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Grid/Grid.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Grid/Grid.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "layout"
+      }
+    },
+    {
+      "name": "divider",
+      "type": "registry:ui",
+      "title": "Divider",
+      "description": "Visual separator for content sections",
+      "categories": [
+        "layout"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Divider/Divider.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Divider/Divider.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "layout"
+      }
+    },
+    {
+      "name": "separator",
+      "type": "registry:ui",
+      "title": "Separator",
+      "description": "Semantic separator element (alias for divider)",
+      "categories": [
+        "layout"
+      ],
+      "registryDependencies": [
+        "divider"
+      ],
+      "files": [
+        {
+          "path": "components/Separator/Separator.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Separator/Separator.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "layout"
+      }
+    },
+    {
+      "name": "aspect-ratio",
+      "type": "registry:component",
+      "title": "Aspect Ratio",
+      "description": "Container that maintains a specified aspect ratio",
+      "categories": [
+        "layout"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/AspectRatio/AspectRatio.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/AspectRatio/AspectRatio.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "layout"
+      }
+    },
+    {
+      "name": "scroll-area",
+      "type": "registry:component",
+      "title": "Scroll Area",
+      "description": "Custom scrollable area with styled scrollbars",
+      "categories": [
+        "layout"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/ScrollArea/ScrollArea.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ScrollArea/ScrollArea.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "layout"
+      }
+    },
+    {
+      "name": "resizable",
+      "type": "registry:component",
+      "title": "Resizable",
+      "description": "Resizable panel layout with drag handles",
+      "categories": [
+        "layout"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Resizable/Resizable.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Resizable/Resizable.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "layout"
+      }
+    },
+    {
+      "name": "text",
+      "type": "registry:ui",
+      "title": "Text",
+      "description": "Body text component with typography token support",
+      "categories": [
+        "typography"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Text/Text.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Text/Text.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "typography"
+      }
+    },
+    {
+      "name": "heading",
+      "type": "registry:ui",
+      "title": "Heading",
+      "description": "Heading component for h1-h6 with typography tokens",
+      "categories": [
+        "typography"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Heading/Heading.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Heading/Heading.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "typography"
+      }
+    },
+    {
+      "name": "label",
+      "type": "registry:component",
+      "title": "Label",
+      "description": "Form label with accessibility support",
+      "categories": [
+        "typography",
+        "forms"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Label/Label.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Label/Label.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "typography"
+      }
+    },
+    {
+      "name": "code",
+      "type": "registry:component",
+      "title": "Code",
+      "description": "Inline and block code display",
+      "categories": [
+        "typography"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Code/Code.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Code/Code.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "typography"
+      }
+    },
+    {
+      "name": "kbd",
+      "type": "registry:component",
+      "title": "Kbd",
+      "description": "Keyboard key indicator",
+      "categories": [
+        "typography"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Kbd/Kbd.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Kbd/Kbd.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "typography"
+      }
+    },
+    {
+      "name": "app-bar",
+      "type": "registry:component",
+      "title": "App Bar",
+      "description": "Top navigation bar with branding and actions",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "box",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/AppBar/AppBar.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/AppBar/AppBar.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "navigation"
+      }
+    },
+    {
+      "name": "sidebar",
+      "type": "registry:component",
+      "title": "Sidebar",
+      "description": "Side navigation panel with collapsible sections",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "box",
+        "stack"
+      ],
+      "files": [
+        {
+          "path": "components/Sidebar/Sidebar.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Sidebar/Sidebar.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "navigation"
+      }
+    },
+    {
+      "name": "navigation-rail",
+      "type": "registry:component",
+      "title": "Navigation Rail",
+      "description": "Compact vertical navigation for desktop",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "box",
+        "stack"
+      ],
+      "files": [
+        {
+          "path": "components/NavigationRail/NavigationRail.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/NavigationRail/NavigationRail.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "navigation"
+      }
+    },
+    {
+      "name": "tabs",
+      "type": "registry:component",
+      "title": "Tabs",
+      "description": "Tabbed navigation container",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Tabs/Tabs.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Tabs/Tabs.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "navigation"
+      }
+    },
+    {
+      "name": "tabs-list",
+      "type": "registry:component",
+      "title": "Tabs List",
+      "description": "Container for tab triggers",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "tabs",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/TabsList/TabsList.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/TabsList/TabsList.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "navigation",
+        "inferredFrom": {
+          "rule": "composition",
+          "triggers": [
+            "tabs"
+          ]
+        }
+      }
+    },
+    {
+      "name": "tabs-trigger",
+      "type": "registry:component",
+      "title": "Tabs Trigger",
+      "description": "Individual tab button",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "tabs",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/TabsTrigger/TabsTrigger.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/TabsTrigger/TabsTrigger.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "navigation",
+        "inferredFrom": {
+          "rule": "composition",
+          "triggers": [
+            "tabs"
+          ]
+        }
+      }
+    },
+    {
+      "name": "tabs-content",
+      "type": "registry:component",
+      "title": "Tabs Content",
+      "description": "Content panel for a tab",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "tabs",
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/TabsContent/TabsContent.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/TabsContent/TabsContent.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "navigation",
+        "inferredFrom": {
+          "rule": "composition",
+          "triggers": [
+            "tabs"
+          ]
+        }
+      }
+    },
+    {
+      "name": "breadcrumb",
+      "type": "registry:component",
+      "title": "Breadcrumb",
+      "description": "Navigation breadcrumb trail",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "flex",
+        "link"
+      ],
+      "files": [
+        {
+          "path": "components/Breadcrumb/Breadcrumb.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Breadcrumb/Breadcrumb.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "navigation"
+      }
+    },
+    {
+      "name": "pagination",
+      "type": "registry:component",
+      "title": "Pagination",
+      "description": "Page navigation controls",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "flex",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/Pagination/Pagination.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Pagination/Pagination.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "navigation"
+      }
+    },
+    {
+      "name": "stepper",
+      "type": "registry:component",
+      "title": "Stepper",
+      "description": "Multi-step wizard navigation",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "flex",
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Stepper/Stepper.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Stepper/Stepper.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "navigation"
+      }
+    },
+    {
+      "name": "navigation-menu",
+      "type": "registry:component",
+      "title": "Navigation Menu",
+      "description": "Horizontal navigation with dropdowns",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "flex",
+        "popover"
+      ],
+      "files": [
+        {
+          "path": "components/NavigationMenu/NavigationMenu.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/NavigationMenu/NavigationMenu.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "navigation"
+      }
+    },
+    {
+      "name": "menubar",
+      "type": "registry:component",
+      "title": "Menubar",
+      "description": "Application menu bar",
+      "categories": [
+        "navigation"
+      ],
+      "registryDependencies": [
+        "flex",
+        "dropdown-menu"
+      ],
+      "files": [
+        {
+          "path": "components/Menubar/Menubar.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Menubar/Menubar.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "navigation"
+      }
+    },
+    {
+      "name": "input",
+      "type": "registry:component",
+      "title": "Input",
+      "description": "Text input field",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Input/Input.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Input/Input.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms",
+        "states": [
+          "default",
+          "hover",
+          "focus",
+          "disabled",
+          "error"
+        ]
+      }
+    },
+    {
+      "name": "textarea",
+      "type": "registry:component",
+      "title": "Textarea",
+      "description": "Multi-line text input",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Textarea/Textarea.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Textarea/Textarea.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms",
+        "states": [
+          "default",
+          "hover",
+          "focus",
+          "disabled",
+          "error"
+        ]
+      }
+    },
+    {
+      "name": "password-input",
+      "type": "registry:component",
+      "title": "Password Input",
+      "description": "Password input with visibility toggle",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "input",
+        "icon-button"
+      ],
+      "files": [
+        {
+          "path": "components/PasswordInput/PasswordInput.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/PasswordInput/PasswordInput.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "forms",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "input"
+          ]
+        }
+      }
+    },
+    {
+      "name": "number-input",
+      "type": "registry:component",
+      "title": "Number Input",
+      "description": "Numeric input with increment/decrement",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "input",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/NumberInput/NumberInput.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/NumberInput/NumberInput.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "forms",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "input"
+          ]
+        }
+      }
+    },
+    {
+      "name": "search-input",
+      "type": "registry:component",
+      "title": "Search Input",
+      "description": "Search input with icon and clear button",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "input",
+        "icon-button"
+      ],
+      "files": [
+        {
+          "path": "components/SearchInput/SearchInput.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/SearchInput/SearchInput.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "forms",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "input"
+          ]
+        }
+      }
+    },
+    {
+      "name": "select",
+      "type": "registry:component",
+      "title": "Select",
+      "description": "Dropdown select component",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "popover"
+      ],
+      "files": [
+        {
+          "path": "components/Select/Select.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Select/Select.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms",
+        "states": [
+          "default",
+          "hover",
+          "focus",
+          "disabled",
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "native-select",
+      "type": "registry:component",
+      "title": "Native Select",
+      "description": "Native browser select element with styling",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/NativeSelect/NativeSelect.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/NativeSelect/NativeSelect.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "forms"
+      }
+    },
+    {
+      "name": "multi-select",
+      "type": "registry:component",
+      "title": "Multi Select",
+      "description": "Select with multiple selection support",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "select",
+        "badge"
+      ],
+      "files": [
+        {
+          "path": "components/MultiSelect/MultiSelect.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/MultiSelect/MultiSelect.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "forms",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "select"
+          ]
+        }
+      }
+    },
+    {
+      "name": "combobox",
+      "type": "registry:component",
+      "title": "Combobox",
+      "description": "Autocomplete input with dropdown",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "input",
+        "popover",
+        "command"
+      ],
+      "files": [
+        {
+          "path": "components/Combobox/Combobox.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Combobox/Combobox.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms"
+      }
+    },
+    {
+      "name": "checkbox",
+      "type": "registry:component",
+      "title": "Checkbox",
+      "description": "Checkbox input with label",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Checkbox/Checkbox.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Checkbox/Checkbox.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms",
+        "states": [
+          "default",
+          "hover",
+          "focus",
+          "checked",
+          "indeterminate",
+          "disabled"
+        ]
+      }
+    },
+    {
+      "name": "radio-group",
+      "type": "registry:component",
+      "title": "Radio Group",
+      "description": "Radio button group",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/RadioGroup/RadioGroup.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/RadioGroup/RadioGroup.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms",
+        "states": [
+          "default",
+          "hover",
+          "focus",
+          "checked",
+          "disabled"
+        ]
+      }
+    },
+    {
+      "name": "switch",
+      "type": "registry:component",
+      "title": "Switch",
+      "description": "Toggle switch",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Switch/Switch.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Switch/Switch.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms",
+        "states": [
+          "default",
+          "hover",
+          "focus",
+          "checked",
+          "disabled"
+        ]
+      }
+    },
+    {
+      "name": "slider",
+      "type": "registry:component",
+      "title": "Slider",
+      "description": "Range slider input",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Slider/Slider.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Slider/Slider.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms",
+        "states": [
+          "default",
+          "hover",
+          "focus",
+          "disabled"
+        ]
+      }
+    },
+    {
+      "name": "date-picker",
+      "type": "registry:component",
+      "title": "Date Picker",
+      "description": "Date selection with calendar popup",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "input",
+        "popover",
+        "calendar"
+      ],
+      "files": [
+        {
+          "path": "components/DatePicker/DatePicker.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/DatePicker/DatePicker.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms"
+      }
+    },
+    {
+      "name": "time-picker",
+      "type": "registry:component",
+      "title": "Time Picker",
+      "description": "Time selection input",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "input",
+        "popover",
+        "select"
+      ],
+      "files": [
+        {
+          "path": "components/TimePicker/TimePicker.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/TimePicker/TimePicker.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms"
+      }
+    },
+    {
+      "name": "calendar",
+      "type": "registry:component",
+      "title": "Calendar",
+      "description": "Calendar grid for date selection",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "grid",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/Calendar/Calendar.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Calendar/Calendar.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms"
+      }
+    },
+    {
+      "name": "file-upload",
+      "type": "registry:component",
+      "title": "File Upload",
+      "description": "File upload dropzone",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "box",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/FileUpload/FileUpload.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/FileUpload/FileUpload.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms",
+        "states": [
+          "default",
+          "hover",
+          "dragging",
+          "uploading",
+          "error"
+        ]
+      }
+    },
+    {
+      "name": "rating",
+      "type": "registry:component",
+      "title": "Rating",
+      "description": "Star rating input",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/Rating/Rating.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Rating/Rating.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms"
+      }
+    },
+    {
+      "name": "field",
+      "type": "registry:component",
+      "title": "Field",
+      "description": "Form field wrapper with label, input, and helper text",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "label",
+        "stack"
+      ],
+      "files": [
+        {
+          "path": "components/Field/Field.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Field/Field.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "forms",
+        "inferredFrom": {
+          "rule": "composition",
+          "triggers": [
+            "input",
+            "label"
+          ]
+        }
+      }
+    },
+    {
+      "name": "fieldset",
+      "type": "registry:component",
+      "title": "Fieldset",
+      "description": "Group of related form fields",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "stack"
+      ],
+      "files": [
+        {
+          "path": "components/Fieldset/Fieldset.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Fieldset/Fieldset.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "forms"
+      }
+    },
+    {
+      "name": "validation-message",
+      "type": "registry:component",
+      "title": "Validation Message",
+      "description": "Form validation error/success message",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "text"
+      ],
+      "files": [
+        {
+          "path": "components/ValidationMessage/ValidationMessage.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ValidationMessage/ValidationMessage.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "forms",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "input",
+            "field"
+          ]
+        }
+      }
+    },
+    {
+      "name": "helper-text",
+      "type": "registry:component",
+      "title": "Helper Text",
+      "description": "Form field helper text",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "text"
+      ],
+      "files": [
+        {
+          "path": "components/HelperText/HelperText.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/HelperText/HelperText.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "forms",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "input",
+            "field"
+          ]
+        }
+      }
+    },
+    {
+      "name": "input-otp",
+      "type": "registry:component",
+      "title": "Input OTP",
+      "description": "One-time password input",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "input",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/InputOtp/InputOtp.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/InputOtp/InputOtp.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "forms"
+      }
+    },
+    {
+      "name": "input-group",
+      "type": "registry:component",
+      "title": "Input Group",
+      "description": "Input with attached addons",
+      "categories": [
+        "forms"
+      ],
+      "registryDependencies": [
+        "input",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/InputGroup/InputGroup.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/InputGroup/InputGroup.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "forms",
+        "inferredFrom": {
+          "rule": "composition",
+          "triggers": [
+            "input",
+            "button"
+          ]
+        }
+      }
+    },
+    {
+      "name": "button",
+      "type": "registry:component",
+      "title": "Button",
+      "description": "Clickable action trigger",
+      "categories": [
+        "buttons"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Button/Button.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Button/Button.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "buttons",
+        "variants": [
+          "primary",
+          "secondary",
+          "destructive",
+          "outline",
+          "ghost",
+          "link"
+        ],
+        "states": [
+          "default",
+          "hover",
+          "active",
+          "focus",
+          "disabled",
+          "loading"
+        ]
+      }
+    },
+    {
+      "name": "icon-button",
+      "type": "registry:component",
+      "title": "Icon Button",
+      "description": "Button with icon only",
+      "categories": [
+        "buttons"
+      ],
+      "registryDependencies": [
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/IconButton/IconButton.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/IconButton/IconButton.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "buttons",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "button"
+          ]
+        }
+      }
+    },
+    {
+      "name": "button-group",
+      "type": "registry:component",
+      "title": "Button Group",
+      "description": "Group of related buttons",
+      "categories": [
+        "buttons"
+      ],
+      "registryDependencies": [
+        "button",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/ButtonGroup/ButtonGroup.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ButtonGroup/ButtonGroup.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "buttons",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "button"
+          ]
+        }
+      }
+    },
+    {
+      "name": "fab",
+      "type": "registry:component",
+      "title": "Floating Action Button",
+      "description": "Floating action button for primary actions",
+      "categories": [
+        "buttons"
+      ],
+      "registryDependencies": [
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/Fab/Fab.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Fab/Fab.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "buttons"
+      }
+    },
+    {
+      "name": "split-button",
+      "type": "registry:component",
+      "title": "Split Button",
+      "description": "Button with dropdown for additional actions",
+      "categories": [
+        "buttons"
+      ],
+      "registryDependencies": [
+        "button",
+        "dropdown-menu"
+      ],
+      "files": [
+        {
+          "path": "components/SplitButton/SplitButton.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/SplitButton/SplitButton.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "buttons",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "button",
+            "dropdown-menu"
+          ]
+        }
+      }
+    },
+    {
+      "name": "link",
+      "type": "registry:component",
+      "title": "Link",
+      "description": "Anchor/link component",
+      "categories": [
+        "buttons"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Link/Link.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Link/Link.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "buttons",
+        "states": [
+          "default",
+          "hover",
+          "active",
+          "focus",
+          "visited"
+        ]
+      }
+    },
+    {
+      "name": "toggle",
+      "type": "registry:component",
+      "title": "Toggle",
+      "description": "Toggle button",
+      "categories": [
+        "buttons"
+      ],
+      "registryDependencies": [
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/Toggle/Toggle.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Toggle/Toggle.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "buttons",
+        "states": [
+          "default",
+          "hover",
+          "pressed",
+          "disabled"
+        ]
+      }
+    },
+    {
+      "name": "toggle-group",
+      "type": "registry:component",
+      "title": "Toggle Group",
+      "description": "Group of toggle buttons",
+      "categories": [
+        "buttons"
+      ],
+      "registryDependencies": [
+        "toggle",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/ToggleGroup/ToggleGroup.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ToggleGroup/ToggleGroup.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "buttons",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "toggle"
+          ]
+        }
+      }
+    },
+    {
+      "name": "table",
+      "type": "registry:component",
+      "title": "Table",
+      "description": "Data table component",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Table/Table.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Table/Table.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "data-table",
+      "type": "registry:component",
+      "title": "Data Table",
+      "description": "Advanced data table with sorting, filtering, pagination",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "table",
+        "pagination",
+        "input"
+      ],
+      "files": [
+        {
+          "path": "components/DataTable/DataTable.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/DataTable/DataTable.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "list",
+      "type": "registry:component",
+      "title": "List",
+      "description": "List container",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "stack"
+      ],
+      "files": [
+        {
+          "path": "components/List/List.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/List/List.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "list-item",
+      "type": "registry:component",
+      "title": "List Item",
+      "description": "Individual list item",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "list",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/ListItem/ListItem.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ListItem/ListItem.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "data-display",
+        "inferredFrom": {
+          "rule": "composition",
+          "triggers": [
+            "list"
+          ]
+        }
+      }
+    },
+    {
+      "name": "item",
+      "type": "registry:component",
+      "title": "Item",
+      "description": "Generic item component",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Item/Item.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Item/Item.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "card",
+      "type": "registry:component",
+      "title": "Card",
+      "description": "Content card container",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Card/Card.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Card/Card.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "card-header",
+      "type": "registry:component",
+      "title": "Card Header",
+      "description": "Card header section",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "card",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/CardHeader/CardHeader.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/CardHeader/CardHeader.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "data-display",
+        "inferredFrom": {
+          "rule": "card-structure",
+          "triggers": [
+            "card"
+          ]
+        }
+      }
+    },
+    {
+      "name": "card-content",
+      "type": "registry:component",
+      "title": "Card Content",
+      "description": "Card content section",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "card",
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/CardContent/CardContent.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/CardContent/CardContent.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "data-display",
+        "inferredFrom": {
+          "rule": "card-structure",
+          "triggers": [
+            "card"
+          ]
+        }
+      }
+    },
+    {
+      "name": "card-footer",
+      "type": "registry:component",
+      "title": "Card Footer",
+      "description": "Card footer section",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "card",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/CardFooter/CardFooter.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/CardFooter/CardFooter.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "data-display",
+        "inferredFrom": {
+          "rule": "card-structure",
+          "triggers": [
+            "card"
+          ]
+        }
+      }
+    },
+    {
+      "name": "avatar",
+      "type": "registry:component",
+      "title": "Avatar",
+      "description": "User avatar with image or initials fallback",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Avatar/Avatar.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Avatar/Avatar.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "badge",
+      "type": "registry:component",
+      "title": "Badge",
+      "description": "Status badge or counter",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Badge/Badge.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Badge/Badge.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display",
+        "variants": [
+          "default",
+          "secondary",
+          "destructive",
+          "outline"
+        ]
+      }
+    },
+    {
+      "name": "chip",
+      "type": "registry:component",
+      "title": "Chip",
+      "description": "Interactive chip/tag",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Chip/Chip.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Chip/Chip.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "tag",
+      "type": "registry:component",
+      "title": "Tag",
+      "description": "Tag label (alias for chip)",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "chip"
+      ],
+      "files": [
+        {
+          "path": "components/Tag/Tag.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Tag/Tag.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "tooltip",
+      "type": "registry:component",
+      "title": "Tooltip",
+      "description": "Hover tooltip",
+      "categories": [
+        "data-display",
+        "overlays"
+      ],
+      "registryDependencies": [
+        "portal"
+      ],
+      "files": [
+        {
+          "path": "components/Tooltip/Tooltip.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Tooltip/Tooltip.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "popover",
+      "type": "registry:component",
+      "title": "Popover",
+      "description": "Click-triggered popover",
+      "categories": [
+        "data-display",
+        "overlays"
+      ],
+      "registryDependencies": [
+        "portal"
+      ],
+      "files": [
+        {
+          "path": "components/Popover/Popover.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Popover/Popover.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "hover-card",
+      "type": "registry:component",
+      "title": "Hover Card",
+      "description": "Rich content tooltip on hover",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "popover",
+        "card"
+      ],
+      "files": [
+        {
+          "path": "components/HoverCard/HoverCard.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/HoverCard/HoverCard.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "accordion",
+      "type": "registry:component",
+      "title": "Accordion",
+      "description": "Collapsible content sections",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "collapsible"
+      ],
+      "files": [
+        {
+          "path": "components/Accordion/Accordion.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Accordion/Accordion.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "collapsible",
+      "type": "registry:component",
+      "title": "Collapsible",
+      "description": "Single collapsible section",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Collapsible/Collapsible.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Collapsible/Collapsible.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "tree-view",
+      "type": "registry:component",
+      "title": "Tree View",
+      "description": "Hierarchical tree structure",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "collapsible",
+        "stack"
+      ],
+      "files": [
+        {
+          "path": "components/TreeView/TreeView.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/TreeView/TreeView.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "timeline",
+      "type": "registry:component",
+      "title": "Timeline",
+      "description": "Vertical timeline display",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "stack"
+      ],
+      "files": [
+        {
+          "path": "components/Timeline/Timeline.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Timeline/Timeline.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "stat",
+      "type": "registry:component",
+      "title": "Stat",
+      "description": "Statistic display with label and value",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "stack",
+        "text",
+        "heading"
+      ],
+      "files": [
+        {
+          "path": "components/Stat/Stat.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Stat/Stat.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "metric",
+      "type": "registry:component",
+      "title": "Metric",
+      "description": "Metric display (alias for stat)",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "stat"
+      ],
+      "files": [
+        {
+          "path": "components/Metric/Metric.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Metric/Metric.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "progress",
+      "type": "registry:component",
+      "title": "Progress",
+      "description": "Progress bar",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Progress/Progress.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Progress/Progress.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "spinner",
+      "type": "registry:component",
+      "title": "Spinner",
+      "description": "Loading spinner",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "tokens"
+      ],
+      "files": [
+        {
+          "path": "components/Spinner/Spinner.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Spinner/Spinner.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "skeleton",
+      "type": "registry:component",
+      "title": "Skeleton",
+      "description": "Content loading placeholder",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Skeleton/Skeleton.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Skeleton/Skeleton.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "empty",
+      "type": "registry:component",
+      "title": "Empty",
+      "description": "Empty state placeholder",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "stack",
+        "text"
+      ],
+      "files": [
+        {
+          "path": "components/Empty/Empty.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Empty/Empty.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "carousel",
+      "type": "registry:component",
+      "title": "Carousel",
+      "description": "Image/content carousel",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "box",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/Carousel/Carousel.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Carousel/Carousel.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "chart",
+      "type": "registry:component",
+      "title": "Chart",
+      "description": "Data visualization chart",
+      "categories": [
+        "data-display"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Chart/Chart.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Chart/Chart.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "data-display"
+      }
+    },
+    {
+      "name": "alert",
+      "type": "registry:component",
+      "title": "Alert",
+      "description": "Alert message box",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Alert/Alert.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Alert/Alert.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "feedback",
+        "variants": [
+          "default",
+          "info",
+          "success",
+          "warning",
+          "destructive"
+        ]
+      }
+    },
+    {
+      "name": "alert-dialog",
+      "type": "registry:component",
+      "title": "Alert Dialog",
+      "description": "Modal alert requiring user action",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "dialog"
+      ],
+      "files": [
+        {
+          "path": "components/AlertDialog/AlertDialog.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/AlertDialog/AlertDialog.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "feedback"
+      }
+    },
+    {
+      "name": "toast",
+      "type": "registry:component",
+      "title": "Toast",
+      "description": "Temporary notification toast",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "portal",
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Toast/Toast.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Toast/Toast.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "feedback",
+        "variants": [
+          "default",
+          "success",
+          "error",
+          "warning",
+          "info"
+        ]
+      }
+    },
+    {
+      "name": "sonner",
+      "type": "registry:component",
+      "title": "Sonner",
+      "description": "Toast notification system (sonner integration)",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "toast"
+      ],
+      "files": [
+        {
+          "path": "components/Sonner/Sonner.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Sonner/Sonner.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "feedback"
+      }
+    },
+    {
+      "name": "notification",
+      "type": "registry:component",
+      "title": "Notification",
+      "description": "Notification component",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "card",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/Notification/Notification.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Notification/Notification.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "feedback"
+      }
+    },
+    {
+      "name": "dialog",
+      "type": "registry:component",
+      "title": "Dialog",
+      "description": "Modal dialog",
+      "categories": [
+        "feedback",
+        "overlays"
+      ],
+      "registryDependencies": [
+        "portal",
+        "focus-trap"
+      ],
+      "files": [
+        {
+          "path": "components/Dialog/Dialog.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Dialog/Dialog.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "feedback"
+      }
+    },
+    {
+      "name": "dialog-header",
+      "type": "registry:component",
+      "title": "Dialog Header",
+      "description": "Dialog header section",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "dialog",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/DialogHeader/DialogHeader.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/DialogHeader/DialogHeader.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "feedback",
+        "inferredFrom": {
+          "rule": "composition",
+          "triggers": [
+            "dialog"
+          ]
+        }
+      }
+    },
+    {
+      "name": "dialog-content",
+      "type": "registry:component",
+      "title": "Dialog Content",
+      "description": "Dialog content section",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "dialog",
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/DialogContent/DialogContent.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/DialogContent/DialogContent.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "feedback",
+        "inferredFrom": {
+          "rule": "composition",
+          "triggers": [
+            "dialog"
+          ]
+        }
+      }
+    },
+    {
+      "name": "dialog-footer",
+      "type": "registry:component",
+      "title": "Dialog Footer",
+      "description": "Dialog footer section",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "dialog",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/DialogFooter/DialogFooter.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/DialogFooter/DialogFooter.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "feedback",
+        "inferredFrom": {
+          "rule": "composition",
+          "triggers": [
+            "dialog"
+          ]
+        }
+      }
+    },
+    {
+      "name": "confirmation-dialog",
+      "type": "registry:component",
+      "title": "Confirmation Dialog",
+      "description": "Confirmation modal with yes/no actions",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "alert-dialog",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "components/ConfirmationDialog/ConfirmationDialog.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ConfirmationDialog/ConfirmationDialog.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "feedback",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "alert-dialog"
+          ]
+        }
+      }
+    },
+    {
+      "name": "banner",
+      "type": "registry:component",
+      "title": "Banner",
+      "description": "Full-width announcement banner",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "flex",
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/Banner/Banner.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Banner/Banner.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "feedback"
+      }
+    },
+    {
+      "name": "inline-error",
+      "type": "registry:component",
+      "title": "Inline Error",
+      "description": "Inline error message",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "text"
+      ],
+      "files": [
+        {
+          "path": "components/InlineError/InlineError.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/InlineError/InlineError.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "feedback",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "alert",
+            "validation-message"
+          ]
+        }
+      }
+    },
+    {
+      "name": "inline-warning",
+      "type": "registry:component",
+      "title": "Inline Warning",
+      "description": "Inline warning message",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "text"
+      ],
+      "files": [
+        {
+          "path": "components/InlineWarning/InlineWarning.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/InlineWarning/InlineWarning.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "feedback",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "alert"
+          ]
+        }
+      }
+    },
+    {
+      "name": "inline-success",
+      "type": "registry:component",
+      "title": "Inline Success",
+      "description": "Inline success message",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "text"
+      ],
+      "files": [
+        {
+          "path": "components/InlineSuccess/InlineSuccess.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/InlineSuccess/InlineSuccess.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "inferred",
+        "required": true,
+        "category": "feedback",
+        "inferredFrom": {
+          "rule": "pattern",
+          "triggers": [
+            "alert"
+          ]
+        }
+      }
+    },
+    {
+      "name": "loading-overlay",
+      "type": "registry:component",
+      "title": "Loading Overlay",
+      "description": "Full-screen loading overlay",
+      "categories": [
+        "feedback"
+      ],
+      "registryDependencies": [
+        "portal",
+        "spinner"
+      ],
+      "files": [
+        {
+          "path": "components/LoadingOverlay/LoadingOverlay.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/LoadingOverlay/LoadingOverlay.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "feedback"
+      }
+    },
+    {
+      "name": "modal",
+      "type": "registry:component",
+      "title": "Modal",
+      "description": "Modal overlay (alias for dialog)",
+      "categories": [
+        "overlays"
+      ],
+      "registryDependencies": [
+        "dialog"
+      ],
+      "files": [
+        {
+          "path": "components/Modal/Modal.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Modal/Modal.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "overlays"
+      }
+    },
+    {
+      "name": "sheet",
+      "type": "registry:component",
+      "title": "Sheet",
+      "description": "Slide-in panel from edge of screen",
+      "categories": [
+        "overlays"
+      ],
+      "registryDependencies": [
+        "portal",
+        "focus-trap"
+      ],
+      "files": [
+        {
+          "path": "components/Sheet/Sheet.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Sheet/Sheet.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "overlays"
+      }
+    },
+    {
+      "name": "drawer",
+      "type": "registry:component",
+      "title": "Drawer",
+      "description": "Drawer panel (mobile-friendly sheet)",
+      "categories": [
+        "overlays",
+        "navigation"
+      ],
+      "registryDependencies": [
+        "sheet"
+      ],
+      "files": [
+        {
+          "path": "components/Drawer/Drawer.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Drawer/Drawer.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "overlays"
+      }
+    },
+    {
+      "name": "context-menu",
+      "type": "registry:component",
+      "title": "Context Menu",
+      "description": "Right-click context menu",
+      "categories": [
+        "overlays"
+      ],
+      "registryDependencies": [
+        "portal",
+        "dropdown-menu"
+      ],
+      "files": [
+        {
+          "path": "components/ContextMenu/ContextMenu.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ContextMenu/ContextMenu.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "overlays"
+      }
+    },
+    {
+      "name": "dropdown-menu",
+      "type": "registry:component",
+      "title": "Dropdown Menu",
+      "description": "Dropdown menu with items",
+      "categories": [
+        "overlays"
+      ],
+      "registryDependencies": [
+        "portal",
+        "popover"
+      ],
+      "files": [
+        {
+          "path": "components/DropdownMenu/DropdownMenu.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/DropdownMenu/DropdownMenu.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "overlays"
+      }
+    },
+    {
+      "name": "command",
+      "type": "registry:component",
+      "title": "Command",
+      "description": "Command palette component",
+      "categories": [
+        "overlays"
+      ],
+      "registryDependencies": [
+        "dialog",
+        "input"
+      ],
+      "files": [
+        {
+          "path": "components/Command/Command.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Command/Command.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": true,
+        "category": "overlays"
+      }
+    },
+    {
+      "name": "command-palette",
+      "type": "registry:component",
+      "title": "Command Palette",
+      "description": "Full command palette (alias for command)",
+      "categories": [
+        "overlays"
+      ],
+      "registryDependencies": [
+        "command"
+      ],
+      "files": [
+        {
+          "path": "components/CommandPalette/CommandPalette.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/CommandPalette/CommandPalette.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "overlays"
+      }
+    },
+    {
+      "name": "portal",
+      "type": "registry:ui",
+      "title": "Portal",
+      "description": "Renders children into a different part of the DOM",
+      "categories": [
+        "utility"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "components/Portal/Portal.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Portal/Portal.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "utility"
+      }
+    },
+    {
+      "name": "focus-trap",
+      "type": "registry:component",
+      "title": "Focus Trap",
+      "description": "Traps focus within a container",
+      "categories": [
+        "utility"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "components/FocusTrap/FocusTrap.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/FocusTrap/FocusTrap.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "utility"
+      }
+    },
+    {
+      "name": "visually-hidden",
+      "type": "registry:ui",
+      "title": "Visually Hidden",
+      "description": "Hides content visually while keeping it accessible",
+      "categories": [
+        "utility"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "components/VisuallyHidden/VisuallyHidden.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/VisuallyHidden/VisuallyHidden.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "primitive",
+        "required": true,
+        "category": "utility"
+      }
+    },
+    {
+      "name": "error-boundary",
+      "type": "registry:component",
+      "title": "Error Boundary",
+      "description": "React error boundary wrapper",
+      "categories": [
+        "utility"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "components/ErrorBoundary/ErrorBoundary.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ErrorBoundary/ErrorBoundary.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "utility"
+      }
+    },
+    {
+      "name": "direction",
+      "type": "registry:component",
+      "title": "Direction",
+      "description": "RTL/LTR direction provider",
+      "categories": [
+        "utility"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "components/Direction/Direction.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Direction/Direction.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": true,
+        "category": "utility"
+      }
+    },
+    {
+      "name": "image",
+      "type": "registry:component",
+      "title": "Image",
+      "description": "Optimized image with loading states",
+      "categories": [
+        "media"
+      ],
+      "registryDependencies": [
+        "skeleton"
+      ],
+      "files": [
+        {
+          "path": "components/Image/Image.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Image/Image.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": false,
+        "category": "media"
+      }
+    },
+    {
+      "name": "image-gallery",
+      "type": "registry:component",
+      "title": "Image Gallery",
+      "description": "Image gallery with lightbox",
+      "categories": [
+        "media"
+      ],
+      "registryDependencies": [
+        "image",
+        "lightbox"
+      ],
+      "files": [
+        {
+          "path": "components/ImageGallery/ImageGallery.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ImageGallery/ImageGallery.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": false,
+        "category": "media"
+      }
+    },
+    {
+      "name": "video-player",
+      "type": "registry:component",
+      "title": "Video Player",
+      "description": "Video player with controls",
+      "categories": [
+        "media"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/VideoPlayer/VideoPlayer.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/VideoPlayer/VideoPlayer.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": false,
+        "category": "media"
+      }
+    },
+    {
+      "name": "audio-player",
+      "type": "registry:component",
+      "title": "Audio Player",
+      "description": "Audio player with controls",
+      "categories": [
+        "media"
+      ],
+      "registryDependencies": [
+        "box",
+        "slider"
+      ],
+      "files": [
+        {
+          "path": "components/AudioPlayer/AudioPlayer.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/AudioPlayer/AudioPlayer.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": false,
+        "category": "media"
+      }
+    },
+    {
+      "name": "lightbox",
+      "type": "registry:component",
+      "title": "Lightbox",
+      "description": "Full-screen image/media viewer",
+      "categories": [
+        "media"
+      ],
+      "registryDependencies": [
+        "portal",
+        "dialog"
+      ],
+      "files": [
+        {
+          "path": "components/Lightbox/Lightbox.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/Lightbox/Lightbox.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "detected",
+        "required": false,
+        "category": "media"
+      }
+    },
+    {
+      "name": "markdown-renderer",
+      "type": "registry:component",
+      "title": "Markdown Renderer",
+      "description": "Renders markdown content",
+      "categories": [
+        "media"
+      ],
+      "registryDependencies": [
+        "text",
+        "heading",
+        "code"
+      ],
+      "files": [
+        {
+          "path": "components/MarkdownRenderer/MarkdownRenderer.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/MarkdownRenderer/MarkdownRenderer.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": false,
+        "category": "media"
+      }
+    },
+    {
+      "name": "code-block",
+      "type": "registry:component",
+      "title": "Code Block",
+      "description": "Code block with syntax highlighting",
+      "categories": [
+        "media"
+      ],
+      "registryDependencies": [
+        "code"
+      ],
+      "files": [
+        {
+          "path": "components/CodeBlock/CodeBlock.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/CodeBlock/CodeBlock.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": false,
+        "category": "media"
+      }
+    },
+    {
+      "name": "syntax-highlighter",
+      "type": "registry:component",
+      "title": "Syntax Highlighter",
+      "description": "Syntax highlighting wrapper",
+      "categories": [
+        "media"
+      ],
+      "registryDependencies": [
+        "code-block"
+      ],
+      "files": [
+        {
+          "path": "components/SyntaxHighlighter/SyntaxHighlighter.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/SyntaxHighlighter/SyntaxHighlighter.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": false,
+        "category": "media"
+      }
+    },
+    {
+      "name": "virtualized-list",
+      "type": "registry:component",
+      "title": "Virtualized List",
+      "description": "Efficiently renders large lists",
+      "categories": [
+        "advanced"
+      ],
+      "registryDependencies": [
+        "list"
+      ],
+      "files": [
+        {
+          "path": "components/VirtualizedList/VirtualizedList.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/VirtualizedList/VirtualizedList.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": false,
+        "category": "advanced"
+      }
+    },
+    {
+      "name": "infinite-scroll",
+      "type": "registry:component",
+      "title": "Infinite Scroll",
+      "description": "Infinite scroll container",
+      "categories": [
+        "advanced"
+      ],
+      "registryDependencies": [
+        "box"
+      ],
+      "files": [
+        {
+          "path": "components/InfiniteScroll/InfiniteScroll.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/InfiniteScroll/InfiniteScroll.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": false,
+        "category": "advanced"
+      }
+    },
+    {
+      "name": "drag-drop",
+      "type": "registry:component",
+      "title": "Drag & Drop",
+      "description": "Drag and drop functionality",
+      "categories": [
+        "advanced"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "components/DragDrop/DragDrop.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/DragDrop/DragDrop.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": false,
+        "category": "advanced"
+      }
+    },
+    {
+      "name": "resize-handle",
+      "type": "registry:component",
+      "title": "Resize Handle",
+      "description": "Draggable resize handle",
+      "categories": [
+        "advanced"
+      ],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "components/ResizeHandle/ResizeHandle.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ResizeHandle/ResizeHandle.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": false,
+        "category": "advanced"
+      }
+    },
+    {
+      "name": "split-pane",
+      "type": "registry:component",
+      "title": "Split Pane",
+      "description": "Resizable split pane layout",
+      "categories": [
+        "advanced"
+      ],
+      "registryDependencies": [
+        "resize-handle",
+        "flex"
+      ],
+      "files": [
+        {
+          "path": "components/SplitPane/SplitPane.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/SplitPane/SplitPane.stories.tsx",
+          "type": "registry:file"
+        }
+      ],
+      "meta": {
+        "source": "template",
+        "required": false,
+        "category": "advanced"
+      }
+    }
+  ],
+  "metadata": {
+    "setSlug": "{{SET_SLUG}}",
+    "styleRunId": "{{STYLE_RUN_ID}}",
+    "createdAt": "{{CREATED_AT}}",
+    "inputChecksum": "{{INPUT_CHECKSUM}}",
+    "generatorVersion": "{{GENERATOR_VERSION}}"
+  }
+}
