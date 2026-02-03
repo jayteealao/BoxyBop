@@ -44,6 +44,10 @@ export interface StyleRefinementInput {
 export interface StyleRefinementResult {
   /** Locked style guide */
   styleGuide: StyleGuideLocked;
+  /** Human-readable style guide markdown */
+  styleGuideMd: string;
+  /** Human-readable design documentation markdown */
+  designMd: string;
   /** Latency in milliseconds */
   latencyMs: number;
 }
@@ -108,6 +112,106 @@ Output ONLY valid JSON matching this schema:
 Be precise. Use exact pixel values converted to rem where appropriate (1rem = 16px).
 Ensure all tokens follow a consistent naming convention.
 Respond with ONLY the JSON object, no markdown or explanation.`;
+
+const STYLE_GUIDE_MD_PROMPT = `You are a design system documentation expert. Generate a comprehensive, human-readable style guide markdown document from the locked design tokens.
+
+The document should be structured as:
+
+# Style Guide
+
+## Overview
+Brief description of the design system's overall aesthetic and purpose.
+
+## Colors
+Document each color token with:
+- CSS variable name
+- Hex value and visual swatch (use emoji or ASCII)
+- Usage guidelines and when to use each color
+
+## Typography
+Document the type scale with:
+- Font sizes, weights, line heights
+- When to use each level (headings, body, captions, etc.)
+- Example use cases
+
+## Spacing
+Document the spacing scale with:
+- Values in pixels and rem
+- Usage guidelines (padding vs margin vs gap)
+- Common patterns
+
+## Borders & Radius
+Document border and radius tokens with usage guidelines.
+
+## Shadows
+Document shadow tokens with visual hierarchy guidance.
+
+## Motion
+Document animation/transition tokens with timing and easing guidance.
+
+## Component Patterns
+For each component type, document:
+- Which tokens to use
+- Sizing and padding specifications
+- Do's and don'ts
+
+Make it practical and actionable for developers implementing components.
+Output ONLY the markdown content, no code blocks wrapping it.`;
+
+const DESIGN_MD_PROMPT = `You are a UI/UX design documentation expert. Generate a comprehensive design philosophy and patterns document from the style analysis.
+
+The document should be structured as:
+
+# Design System Philosophy
+
+## Aesthetic Overview
+Describe the overall visual aesthetic, mood, and design language:
+- Is it minimal, playful, corporate, modern, etc.?
+- What emotions or feelings should the UI evoke?
+- Key visual characteristics that define the look
+
+## Visual Hierarchy
+- How is hierarchy established (size, color, weight)?
+- Content prioritization patterns
+- Information density approach
+
+## Interaction Patterns
+- Common interaction behaviors
+- Hover, focus, and active states
+- Feedback mechanisms
+
+## Layout Principles
+- Grid and spacing philosophy
+- Content organization patterns
+- Responsive behavior guidelines
+
+## Animation & Motion
+- Animation philosophy (subtle vs. expressive)
+- Timing and easing patterns
+- When to use motion vs. static
+
+## Accessibility
+- Contrast requirements
+- Focus state guidelines
+- Interactive element sizing
+
+## Do's and Don'ts
+List clear guidelines:
+### Do
+- Specific things to follow
+
+### Don't
+- Specific things to avoid
+
+## Grounding Instructions for AI
+Instructions for AI tools (Claude, Gemini) when generating components:
+- Key aesthetic principles to maintain
+- Specific patterns to follow
+- Common mistakes to avoid
+- Reference tokens and their semantic meaning
+
+Make this document useful for both human designers and AI code generation tools.
+Output ONLY the markdown content, no code blocks wrapping it.`;
 
 /**
  * Compute SHA-256 hash of tokens for integrity verification.
@@ -296,10 +400,84 @@ Produce the locked style guide JSON:`;
       refinedByModel: this.model,
     };
 
+    // Generate human-readable documentation
+    console.log("[ClaudeAgent] Generating style-guide.md...");
+    const styleGuideMd = await this.generateDocumentation(
+      STYLE_GUIDE_MD_PROMPT,
+      styleGuide,
+      geminiAnalysis
+    );
+
+    console.log("[ClaudeAgent] Generating design.md...");
+    const designMd = await this.generateDocumentation(
+      DESIGN_MD_PROMPT,
+      styleGuide,
+      geminiAnalysis
+    );
+
+    const totalLatencyMs = Date.now() - startTime;
+
     return {
       styleGuide,
-      latencyMs,
+      styleGuideMd,
+      designMd,
+      latencyMs: totalLatencyMs,
     };
+  }
+
+  /**
+   * Generate markdown documentation from style guide and analysis.
+   */
+  private async generateDocumentation(
+    systemPrompt: string,
+    styleGuide: StyleGuideLocked,
+    geminiAnalysis: StyleAnalysisGemini
+  ): Promise<string> {
+    const dataPrompt = `
+## Locked Style Guide (JSON)
+\`\`\`json
+${JSON.stringify(styleGuide, null, 2)}
+\`\`\`
+
+## Original Gemini Analysis (JSON)
+\`\`\`json
+${JSON.stringify(geminiAnalysis, null, 2)}
+\`\`\`
+
+Generate the documentation:`;
+
+    let responseText = "";
+
+    for await (const message of query({
+      prompt: `${systemPrompt}\n\n${dataPrompt}`,
+      options: {
+        allowedTools: [],
+        model: this.model,
+      },
+    })) {
+      if (message.type === "assistant" && message.message?.content) {
+        for (const block of message.message.content) {
+          if ("text" in block && typeof block.text === "string") {
+            responseText += block.text;
+          }
+        }
+      }
+    }
+
+    // Clean up any accidental code block wrapping
+    let cleanedResponse = responseText.trim();
+    if (cleanedResponse.startsWith("```markdown")) {
+      cleanedResponse = cleanedResponse.slice(11);
+    } else if (cleanedResponse.startsWith("```md")) {
+      cleanedResponse = cleanedResponse.slice(5);
+    } else if (cleanedResponse.startsWith("```")) {
+      cleanedResponse = cleanedResponse.slice(3);
+    }
+    if (cleanedResponse.endsWith("```")) {
+      cleanedResponse = cleanedResponse.slice(0, -3);
+    }
+
+    return cleanedResponse.trim();
   }
 
   /**

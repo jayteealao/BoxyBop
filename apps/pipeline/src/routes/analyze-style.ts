@@ -45,6 +45,8 @@ const AnalyzeStyleResponseSchema = z.object({
   artifactPaths: z.object({
     geminiAnalysis: z.string(),
     lockedStyleGuide: z.string(),
+    styleGuideMd: z.string(),
+    designMd: z.string(),
   }),
   latency: z.object({
     geminiMs: z.number(),
@@ -225,6 +227,8 @@ analyzeStyleRouter.post("/", async (req: Request, res: Response): Promise<void> 
 
     const geminiAnalysisPath = path.join(styleDir, "gemini_analysis.json");
     const lockedStyleGuidePath = path.join(styleDir, "locked_tokens.json");
+    const styleGuideMdPath = path.join(styleDir, "style-guide.md");
+    const designMdPath = path.join(styleDir, "design.md");
 
     await fs.writeFile(
       geminiAnalysisPath,
@@ -239,6 +243,13 @@ analyzeStyleRouter.post("/", async (req: Request, res: Response): Promise<void> 
       JSON.stringify(lockedStyleGuide, null, 2),
       "utf-8"
     );
+
+    // Write human-readable documentation
+    await fs.writeFile(styleGuideMdPath, claudeResult.styleGuideMd, "utf-8");
+    await fs.writeFile(designMdPath, claudeResult.designMd, "utf-8");
+
+    console.log(`[AnalyzeStyle] Generated style-guide.md (${claudeResult.styleGuideMd.length} chars)`);
+    console.log(`[AnalyzeStyle] Generated design.md (${claudeResult.designMd.length} chars)`);
 
     // Make locked_tokens.json read-only (permissions: 0o444)
     try {
@@ -260,6 +271,8 @@ analyzeStyleRouter.post("/", async (req: Request, res: Response): Promise<void> 
       artifactPaths: {
         geminiAnalysis: geminiAnalysisPath,
         lockedStyleGuide: lockedStyleGuidePath,
+        styleGuideMd: styleGuideMdPath,
+        designMd: designMdPath,
       },
       latency: {
         geminiMs: geminiLatencyMs,
