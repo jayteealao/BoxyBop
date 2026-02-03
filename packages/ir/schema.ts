@@ -383,19 +383,33 @@ export type GeminiAnalysis = z.infer<typeof GeminiAnalysisSchema>;
  * Generation tier determines when a component is generated.
  * - tier-0-token: Design tokens (colors, spacing, etc.) - always generated
  * - tier-1-primitive: Layout primitives (Box, Stack, etc.) - always generated
- * - tier-2-detected: Components detected from screenshots - conditional
+ * - tier-2-component: UI components (detected or inferred) - always generated
  * - tier-3-utility: Infrastructure utilities - always generated
- * - tier-2c-domain: Domain-specific components - not auto-generated
+ * - tier-2d-domain: Domain-specific components - stub generated with TODOs
  */
 export const GenerationTierSchema = z.enum([
   "tier-0-token",
   "tier-1-primitive",
-  "tier-2-detected",
+  "tier-2-component",
   "tier-3-utility",
-  "tier-2c-domain",
+  "tier-2d-domain",
 ]);
 
 export type GenerationTier = z.infer<typeof GenerationTierSchema>;
+
+/**
+ * How a component was derived.
+ * - detected: Explicitly found in screenshot via OmniParser + Gemini
+ * - inferred: Derived from patterns, token usage, or compositional rules
+ * - template: Generated from a predefined template (primitives, utilities)
+ */
+export const ComponentDerivationSchema = z.enum([
+  "detected",
+  "inferred",
+  "template",
+]);
+
+export type ComponentDerivation = z.infer<typeof ComponentDerivationSchema>;
 
 /**
  * A candidate component derived from analysis.
@@ -420,8 +434,14 @@ export const ComponentCandidateSchema = z.object({
   ]),
   /** Generation tier - determines if/when this component is generated */
   generationTier: GenerationTierSchema,
+  /** How this component was derived */
+  derivation: ComponentDerivationSchema,
+  /** For inferred components: the rule/pattern that triggered inference */
+  inferenceRule: z.string().optional(),
   /** Source analysis IDs this was derived from (empty for primitives/utilities) */
   sourceAnalysisIds: z.array(UuidSchema),
+  /** IDs of other components this was inferred from (for compound components) */
+  inferredFromComponentIds: z.array(UuidSchema).optional(),
   /** Proposed props */
   props: z.array(
     z.object({
@@ -742,6 +762,7 @@ export const schemas = {
   // Sub-types
   ElementTypeSchema,
   GenerationTierSchema,
+  ComponentDerivationSchema,
   ExtractedColorSchema,
   ExtractedTypographySchema,
   ExtractedSpacingSchema,

@@ -116,8 +116,13 @@
     },
     "GenerationTier": {
       "type": "string",
-      "enum": ["tier-0-token", "tier-1-primitive", "tier-2-detected", "tier-3-utility", "tier-2c-domain"],
+      "enum": ["tier-0-token", "tier-1-primitive", "tier-2-component", "tier-3-utility", "tier-2d-domain"],
       "description": "Determines when a component/file is generated"
+    },
+    "ComponentDerivation": {
+      "type": "string",
+      "enum": ["detected", "inferred", "template"],
+      "description": "How a component was derived"
     },
     "ValidationType": {
       "type": "string",
@@ -333,7 +338,13 @@
         },
         "category": { "$ref": "#/definitions/ComponentCategory" },
         "generationTier": { "$ref": "#/definitions/GenerationTier" },
+        "derivation": { "$ref": "#/definitions/ComponentDerivation" },
+        "inferenceRule": { "type": "string" },
         "sourceAnalysisIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Uuid" }
+        },
+        "inferredFromComponentIds": {
           "type": "array",
           "items": { "$ref": "#/definitions/Uuid" }
         },
@@ -379,8 +390,8 @@
         "createdAt": { "$ref": "#/definitions/Timestamp" }
       },
       "required": [
-        "id", "dedupKey", "name", "category", "generationTier", "sourceAnalysisIds",
-        "props", "variants", "states", "tokenRefs", "createdAt"
+        "id", "dedupKey", "name", "category", "generationTier", "derivation",
+        "sourceAnalysisIds", "props", "variants", "states", "tokenRefs", "createdAt"
       ],
       "additionalProperties": false
     },

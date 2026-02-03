@@ -59,11 +59,26 @@ import schema from "@boxybop/ir/schema.json";
 | `CropSpec` | Human-adjusted crop region specification |
 | `CropArtifact` | Actual cropped PNG file with hash and dimensions |
 | `GeminiAnalysis` | Structured analysis output from Gemini |
-| `ComponentCandidate` | Proposed component with props, variants, states |
+| `ComponentCandidate` | Proposed component with props, variants, states, derivation |
 | `TokenCandidate` | Extracted design tokens (colors, typography, spacing) |
 | `CodegenPlan` | Plan for which files to generate |
 | `CodegenResult` | Results of code generation including lint/test status |
 | `PipelineSession` | Top-level container for a complete processing session |
+
+## Component Derivation
+
+Components can be derived in three ways:
+
+| Derivation | Description | Example |
+|------------|-------------|---------|
+| `detected` | Explicitly found in screenshot via OmniParser + Gemini | Button at coordinates (100,200) |
+| `inferred` | Derived from patterns, token usage, or compositional rules | Form inferred from multiple Input detections |
+| `template` | Generated from predefined templates (primitives, utilities) | Box, Stack, Portal |
+
+The `ComponentCandidate` schema includes:
+- `derivation`: How the component was derived
+- `inferenceRule`: For inferred components, the rule that triggered inference
+- `inferredFromComponentIds`: IDs of other components this was inferred from
 
 ## Coordinate System
 

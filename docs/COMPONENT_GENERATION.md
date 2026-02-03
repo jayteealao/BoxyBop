@@ -73,57 +73,146 @@ output/primitives/
 └── index.ts
 ```
 
-### Tier 2: Detected Components (CONTEXTUAL)
+### Tier 2: Components (DETECTED + INFERRED)
 
-Generated **only if detected** in the ImageSet. Gemini analysis determines which components are present.
+Components are generated through two mechanisms:
+1. **Detected**: Explicitly identified in screenshots via OmniParser + Gemini analysis
+2. **Inferred**: Derived from patterns, token usage, and compositional relationships
 
-#### 2A: High-Confidence Detection (Usually Generated)
+Both detected and inferred components are generated - **not just what's explicitly seen**.
 
-These component types are commonly detected and have clear visual signatures.
+#### Detection vs Inference
 
-| Component | Detection Signal | Generated If Detected |
-|-----------|------------------|----------------------|
-| **Button** | Clickable element with text/icon, distinct background | ✅ |
-| **Input** | Text field, bordered rectangle | ✅ |
-| **Card** | Contained area with padding, often elevated | ✅ |
-| **Avatar** | Circular/rounded image, typically small | ✅ |
-| **Badge** | Small label, often colored | ✅ |
-| **Checkbox** | Square with check state | ✅ |
-| **Radio** | Circle with selection state | ✅ |
-| **Toggle/Switch** | Binary switch element | ✅ |
-| **Icon** | Small symbolic graphic | ✅ |
+| Source | How It Works | Example |
+|--------|--------------|---------|
+| **Detected** | OmniParser finds bounding box, Gemini analyzes crop | Button seen at (100,200) → Button component |
+| **Inferred** | Pattern analysis across multiple detections | 3 Inputs detected → Form component inferred |
+| **Inferred** | Token usage patterns | Consistent 8px/16px spacing → spacing-aware components |
+| **Inferred** | Common UI pairings | Button + Input detected → FormField wrapper inferred |
+| **Inferred** | Semantic relationships | Card with heading + text → CardHeader, CardContent inferred |
 
-#### 2B: Complex Components (Generated with Sufficient Context)
+#### Inference Rules
 
-Require multiple elements or specific patterns to be detected.
+The system infers components based on:
 
-| Component | Detection Requirement | Generated If Detected |
-|-----------|----------------------|----------------------|
-| **Select/Dropdown** | Input + dropdown indicator | ✅ |
-| **Modal/Dialog** | Overlay + contained content | ✅ |
-| **Tabs** | Multiple tab items + content area | ✅ |
-| **Accordion** | Collapsible sections | ✅ |
-| **Table** | Grid of cells with headers | ✅ |
-| **List** | Repeated similar items | ✅ |
-| **Navigation** | Multiple linked items | ✅ |
-| **Toast/Alert** | Feedback message element | ✅ |
-| **Progress** | Bar or circular indicator | ✅ |
-| **Tooltip** | Floating hint element | ✅ |
+1. **Compositional patterns**: If A and B are always found together, infer a wrapper component
+2. **Repeated structures**: If same layout appears 3+ times, infer a reusable component
+3. **Semantic groupings**: Group related elements into compound components
+4. **State variations**: If same element appears in multiple states, infer stateful component
+5. **Token clustering**: Consistent token usage suggests component boundaries
 
-#### 2C: Domain-Specific (Rarely Auto-Generated)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    COMPONENT GENERATION                          │
+└─────────────────────────────────────────────────────────────────┘
 
-These require explicit domain knowledge or are too complex for reliable auto-detection.
+  Screenshot Analysis                    Inference Engine
+         │                                      │
+         ▼                                      ▼
+  ┌─────────────┐                      ┌─────────────────┐
+  │  OmniParser │                      │ Pattern Matcher │
+  │   Detects   │                      │    Analyzes     │
+  └─────────────┘                      └─────────────────┘
+         │                                      │
+         ▼                                      ▼
+  ┌─────────────┐                      ┌─────────────────┐
+  │   Gemini    │                      │   Composition   │
+  │  Analyzes   │                      │     Rules       │
+  └─────────────┘                      └─────────────────┘
+         │                                      │
+         └──────────────┬───────────────────────┘
+                        ▼
+              ┌─────────────────┐
+              │   Component     │
+              │   Candidates    │
+              │ (detected +     │
+              │  inferred)      │
+              └─────────────────┘
+```
 
-| Component | Why Optional | Auto-Generate |
-|-----------|--------------|---------------|
-| **Charts** | Requires data structure knowledge | ❌ No |
-| **Maps** | External service dependency | ❌ No |
-| **Calendar** | Complex date logic | ❌ No |
-| **Kanban** | Domain-specific layout | ❌ No |
-| **Chat** | Real-time interaction patterns | ❌ No |
-| **File Explorer** | Hierarchical data structure | ❌ No |
-| **Rich Text Editor** | Complex editing logic | ❌ No |
-| **Video/Audio Player** | Media handling | ❌ No |
+#### 2A: Atomic Components (Detected or Inferred)
+
+Base-level UI elements. Can be detected directly or inferred from token patterns.
+
+| Component | Detection Signal | Inference Signal | Generated |
+|-----------|------------------|------------------|-----------|
+| **Button** | Clickable element with text/icon | Action-oriented color tokens | ✅ Always |
+| **Input** | Text field, bordered rectangle | Form-like color/border tokens | ✅ Always |
+| **Textarea** | Multi-line input area | Input detected + larger height | ✅ Always |
+| **Card** | Contained area with padding, elevation | Shadow + radius tokens present | ✅ Always |
+| **Avatar** | Circular/rounded image | Circle radius + image patterns | ✅ Always |
+| **Badge** | Small label, often colored | Small text + colored background | ✅ Always |
+| **Checkbox** | Square with check state | Form tokens + binary state | ✅ Always |
+| **Radio** | Circle with selection state | Form tokens + selection pattern | ✅ Always |
+| **Toggle/Switch** | Binary switch element | Binary state + accent colors | ✅ Always |
+| **Icon** | Small symbolic graphic | Consistent small dimensions | ✅ Always |
+| **Link** | Text with action styling | Text + accent color tokens | ✅ Always |
+| **Label** | Form field label | Small text near inputs | ✅ Always |
+
+#### 2B: Compound Components (Primarily Inferred)
+
+Built by composing atomic components. Inferred from co-occurrence patterns.
+
+| Component | Inference Rule | Generated |
+|-----------|----------------|-----------|
+| **FormField** | Label + Input + HelperText pattern | ✅ Yes |
+| **Form** | Multiple FormFields grouped | ✅ Yes |
+| **ButtonGroup** | Multiple Buttons adjacent | ✅ Yes |
+| **InputGroup** | Input + Button/Icon adjacent | ✅ Yes |
+| **CardHeader** | Heading inside Card at top | ✅ Yes |
+| **CardContent** | Content area inside Card | ✅ Yes |
+| **CardFooter** | Actions at Card bottom | ✅ Yes |
+| **ListItem** | Repeated structure in List | ✅ Yes |
+| **NavItem** | Repeated link pattern | ✅ Yes |
+| **TabPanel** | Content associated with Tab | ✅ Yes |
+| **MenuItem** | Item inside Dropdown/Menu | ✅ Yes |
+| **AlertTitle** | Heading inside Alert | ✅ Yes |
+| **AlertDescription** | Text inside Alert | ✅ Yes |
+
+#### 2C: Layout Components (Inferred from Structure)
+
+Higher-order layout patterns inferred from spatial relationships.
+
+| Component | Inference Rule | Generated |
+|-----------|----------------|-----------|
+| **Select/Dropdown** | Input + chevron + options pattern | ✅ Yes |
+| **Modal/Dialog** | Overlay + centered content + close | ✅ Yes |
+| **Drawer** | Slide-in panel pattern | ✅ Yes |
+| **Tabs** | Tab headers + content panels | ✅ Yes |
+| **Accordion** | Collapsible sections pattern | ✅ Yes |
+| **Table** | Grid of cells with headers | ✅ Yes |
+| **List** | Repeated vertical items | ✅ Yes |
+| **Navigation** | Multiple linked items, usually horizontal/vertical | ✅ Yes |
+| **Sidebar** | Vertical nav + content layout | ✅ Yes |
+| **Header** | Top-positioned content bar | ✅ Yes |
+| **Footer** | Bottom-positioned content bar | ✅ Yes |
+| **Toast/Alert** | Feedback message element | ✅ Yes |
+| **Progress** | Bar or circular indicator | ✅ Yes |
+| **Tooltip** | Floating hint on hover | ✅ Yes |
+| **Popover** | Floating content triggered by click | ✅ Yes |
+| **Pagination** | Page navigation pattern | ✅ Yes |
+| **Breadcrumbs** | Hierarchical path pattern | ✅ Yes |
+| **Stepper** | Sequential step indicator | ✅ Yes |
+
+#### 2D: Domain-Specific (Not Auto-Generated)
+
+These require explicit domain knowledge or external dependencies. Marked for manual implementation.
+
+| Component | Why Not Auto-Generated | Output |
+|-----------|------------------------|--------|
+| **Charts** | Requires data structure knowledge | 📝 Stub with TODO |
+| **Maps** | External service dependency | 📝 Stub with TODO |
+| **Calendar** | Complex date logic | 📝 Stub with TODO |
+| **Kanban** | Domain-specific layout | 📝 Stub with TODO |
+| **Chat** | Real-time interaction patterns | 📝 Stub with TODO |
+| **File Explorer** | Hierarchical data structure | 📝 Stub with TODO |
+| **Rich Text Editor** | Complex editing logic | 📝 Stub with TODO |
+| **Video/Audio Player** | Media handling | 📝 Stub with TODO |
+
+For domain-specific components, the system generates:
+- A stub component with props derived from detected patterns
+- TODO comments indicating what needs manual implementation
+- Story file with placeholder states
 
 ### Tier 3: Utility Components (ALWAYS GENERATED)
 
