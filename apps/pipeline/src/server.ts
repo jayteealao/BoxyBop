@@ -9,6 +9,7 @@ import { runSetRouter } from "./routes/run-set.js";
 import { codegenRouter } from "./routes/codegen.js";
 import { uiPackagesRouter } from "./routes/ui-packages.js";
 import { validateEnv } from "./config/env.js";
+import { requestIdMiddleware, requestLoggingMiddleware, logger } from "./middleware/logging.js";
 
 // Validate required environment variables
 const env = validateEnv();
@@ -19,6 +20,8 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
+app.use(requestIdMiddleware);
+app.use(requestLoggingMiddleware);
 
 // Routes
 app.use("/api/health", healthRouter);
@@ -44,9 +47,13 @@ app.use(
 );
 
 app.listen(PORT, () => {
-  console.log(`Pipeline server running on http://localhost:${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/api/health`);
-  console.log(`Replicate API: ${env.REPLICATE_API_TOKEN ? "configured" : "NOT configured"}`);
-  console.log(`Gemini API: ${env.GEMINI_API_KEY ? "configured" : "NOT configured"}`);
-  console.log(`Anthropic API: ${env.ANTHROPIC_API_KEY ? "configured" : "NOT configured"}`);
+  logger.info("Pipeline server started", {
+    port: PORT,
+    healthCheck: `http://localhost:${PORT}/api/health`,
+    apis: {
+      replicate: env.REPLICATE_API_TOKEN ? "configured" : "NOT configured",
+      gemini: env.GEMINI_API_KEY ? "configured" : "NOT configured",
+      anthropic: env.ANTHROPIC_API_KEY ? "configured" : "NOT configured",
+    },
+  });
 });

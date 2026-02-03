@@ -49,3 +49,11 @@ export {
   type BBox as CropBBox,
   type CropResult,
 } from "./cropUtils.js";
+
+export {
+  withRetry,
+  batchWithRetry,
+  isRetryableError,
+  type RetryOptions,
+  type BatchResult,
+} from "./retry.js";

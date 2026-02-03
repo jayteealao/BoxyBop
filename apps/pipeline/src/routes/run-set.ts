@@ -23,8 +23,10 @@ import {
   filterTinyBoxes,
   dedupeByIoU,
   computeSha256,
+  withRetry,
   type StyleAnalysisImage,
   type CropAnalysisInput,
+  type RetryOptions,
 } from "@boxybop/shared";
 import {
   ParsedElementSchema,
@@ -42,6 +44,7 @@ import {
 } from "@boxybop/ir";
 import { getEnv } from "../config/env.js";
 import { expensiveEndpointLimiter, MAX_BASE64_SIZE } from "../middleware/security.js";
+import { getRequestLogger, type Logger } from "../middleware/logging.js";
 
 export const runSetRouter: IRouter = Router();
 
@@ -99,6 +102,18 @@ const RunSetRequestSchema = z.object({
 
 type RunSetRequest = z.infer<typeof RunSetRequestSchema>;
 
+/**
+ * Failed crop information for explicit error tracking.
+ */
+const FailedCropSchema = z.object({
+  cropId: z.string(),
+  artifactId: z.string(),
+  error: z.string(),
+  retryAttempts: z.number(),
+});
+
+type FailedCrop = z.infer<typeof FailedCropSchema>;
+
 const RunSetResponseSchema = z.object({
   runId: z.string(),
   setId: z.string(),
@@ -108,8 +123,11 @@ const RunSetResponseSchema = z.object({
     imagesProcessed: z.number(),
     elementsDetected: z.number(),
     cropsAnalyzed: z.number(),
+    cropsFailed: z.number(),
     tokensHash: z.string(),
   }),
+  /** Explicit list of failed crops with error details */
+  failedCrops: z.array(FailedCropSchema).optional(),
   latency: z.object({
     styleMs: z.number(),
     parseMs: z.number(),
@@ -119,6 +137,21 @@ const RunSetResponseSchema = z.object({
 });
 
 type RunSetResponse = z.infer<typeof RunSetResponseSchema>;
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+/**
+ * Retry configuration for external API calls.
+ * Uses exponential backoff: 1s, 2s, 4s (max 3 retries).
+ */
+const API_RETRY_OPTIONS: RetryOptions = {
+  maxRetries: 3,
+  initialDelayMs: 1000,
+  maxDelayMs: 10000,
+  backoffMultiplier: 2,
+};
 
 // =============================================================================
 // Helpers
@@ -503,16 +536,18 @@ async function generateCrops(
 
 /**
  * Step 4: Analyze each crop with locked tokens.
+ * Uses retry logic for transient failures and tracks failed crops explicitly.
  */
 async function analyzeCrops(
   request: RunSetRequest,
   artifacts: CropArtifact[],
   lockedStyleGuide: StyleGuideLocked,
   styleRunId: string,
-  env: ReturnType<typeof getEnv>
-): Promise<{ analyses: CropAnalysis[]; latencyMs: number }> {
+  env: ReturnType<typeof getEnv>,
+  logger: Logger
+): Promise<{ analyses: CropAnalysis[]; failedCrops: FailedCrop[]; latencyMs: number }> {
   const startTime = Date.now();
-  console.log(`[RunSet] Step 4: Analyzing ${artifacts.length} crops with locked tokens...`);
+  logger.info("Step 4: Analyzing crops with locked tokens", { count: artifacts.length });
 
   if (!env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY required for crop analysis");
@@ -520,6 +555,7 @@ async function analyzeCrops(
 
   const geminiClient = createGeminiClient({ apiKey: env.GEMINI_API_KEY });
   const analyses: CropAnalysis[] = [];
+  const failedCrops: FailedCrop[] = [];
 
   // Get full screenshot dimensions for rejection check
   const fullScreenshotDimensions = request.images.map((img) => ({
@@ -535,18 +571,28 @@ async function analyzeCrops(
         d.height === artifact.dimensions.height
     );
     if (matchesFull) {
-      console.log(`[RunSet] Skipping artifact ${artifact.id} - matches full screenshot dimensions`);
+      logger.debug("Skipping artifact - matches full screenshot dimensions", { artifactId: artifact.id });
       continue;
     }
 
     const pngBase64 = (artifact as CropArtifact & { _pngBase64?: string })._pngBase64;
     if (!pngBase64) {
-      console.warn(`[RunSet] No PNG data for artifact ${artifact.id}`);
+      logger.warn("No PNG data for artifact", { artifactId: artifact.id });
+      failedCrops.push({
+        cropId: artifact.cropSpecId,
+        artifactId: artifact.id,
+        error: "No PNG data available",
+        retryAttempts: 0,
+      });
       continue;
     }
 
-    console.log(`[RunSet] Analyzing crop ${artifact.cropSpecId} (${artifact.dimensions.width}x${artifact.dimensions.height})...`);
+    logger.info("Analyzing crop", {
+      cropId: artifact.cropSpecId,
+      dimensions: `${artifact.dimensions.width}x${artifact.dimensions.height}`,
+    });
 
+    let retryAttempts = 0;
     try {
       const input: CropAnalysisInput = {
         base64: pngBase64,
@@ -585,7 +631,22 @@ async function analyzeCrops(
         },
       };
 
-      const result = await geminiClient.analyzeCrop(input);
+      // Use retry logic for Gemini API call
+      const result = await withRetry(
+        () => geminiClient.analyzeCrop(input),
+        {
+          ...API_RETRY_OPTIONS,
+          onRetry: (attempt, error, delayMs) => {
+            retryAttempts = attempt;
+            logger.warn("Retrying crop analysis", {
+              cropId: artifact.cropSpecId,
+              attempt,
+              delayMs,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          },
+        }
+      );
 
       const cropAnalysis: CropAnalysis = {
         id: randomUUID(),
@@ -628,13 +689,29 @@ async function analyzeCrops(
 
       analyses.push(cropAnalysis);
     } catch (err) {
-      console.error(`[RunSet] Failed to analyze crop ${artifact.cropSpecId}:`, err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      logger.error("Failed to analyze crop after retries", err, {
+        cropId: artifact.cropSpecId,
+        retryAttempts,
+      });
+
+      // Track the failure explicitly
+      failedCrops.push({
+        cropId: artifact.cropSpecId,
+        artifactId: artifact.id,
+        error: errorMessage,
+        retryAttempts,
+      });
       // Continue with other crops
     }
   }
 
-  console.log(`[RunSet] Analyzed ${analyses.length} crops`);
-  return { analyses, latencyMs: Date.now() - startTime };
+  logger.info("Crop analysis complete", {
+    analyzed: analyses.length,
+    failed: failedCrops.length,
+  });
+
+  return { analyses, failedCrops, latencyMs: Date.now() - startTime };
 }
 
 // =============================================================================
@@ -654,6 +731,7 @@ async function analyzeCrops(
  */
 runSetRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Response): Promise<void> => {
   const totalStartTime = Date.now();
+  const logger = getRequestLogger(req, "RunSet");
 
   // Validate request
   const parseResult = RunSetRequestSchema.safeParse(req.body);
@@ -671,19 +749,26 @@ runSetRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Respo
   const runId = randomUUID();
   const runDir = path.join(runsDir, runId);
 
-  console.log(`[RunSet] Starting pipeline run ${runId} for set ${request.setId}`);
-  console.log(`[RunSet] Images: ${request.images.length}, Manual crops: ${request.manualCrops?.length ?? 0}`);
+  logger.info("Starting pipeline run", {
+    runId,
+    setId: request.setId,
+    imageCount: request.images.length,
+    manualCropCount: request.manualCrops?.length ?? 0,
+  });
 
   try {
     await ensureDir(runDir);
 
     // Step 0: Ensure locked tokens
     const styleResult = await ensureLockedTokens(request, runsDir, env);
-    console.log(`[RunSet] Style run: ${styleResult.styleRunId} (${styleResult.latencyMs}ms)`);
+    logger.info("Style run complete", {
+      styleRunId: styleResult.styleRunId,
+      latencyMs: styleResult.latencyMs,
+    });
 
     // Step 1: Parse images
     const parseResult = await parseImages(request, env);
-    console.log(`[RunSet] Parsing complete (${parseResult.latencyMs}ms)`);
+    logger.info("Parsing complete", { latencyMs: parseResult.latencyMs });
 
     // Step 2: Filter and dedupe
     const minWidth = request.minBoxSize?.width ?? 20;
@@ -699,13 +784,14 @@ runSetRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Respo
     // Step 3: Generate crops
     const cropsResult = await generateCrops(request, filteredElements);
 
-    // Step 4: Analyze crops
+    // Step 4: Analyze crops (with retry and failure tracking)
     const analysisResult = await analyzeCrops(
       request,
       cropsResult.artifacts,
       styleResult.lockedStyleGuide,
       styleResult.styleRunId,
-      env
+      env,
+      logger
     );
 
     // Step 5: Write ir.json
@@ -766,7 +852,7 @@ runSetRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Respo
 
     const irPath = path.join(runDir, "ir.json");
     await fs.writeFile(irPath, JSON.stringify(irData, null, 2));
-    console.log(`[RunSet] Written ir.json to ${irPath}`);
+    logger.info("Written ir.json", { irPath });
 
     // Also save crops to disk
     const cropsDir = path.join(runDir, "crops");
@@ -780,13 +866,19 @@ runSetRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Respo
     }
 
     const totalLatencyMs = Date.now() - totalStartTime;
-    console.log(`[RunSet] Pipeline complete in ${totalLatencyMs}ms`);
 
     // Count total elements
     let totalElements = 0;
     for (const elements of filteredElements.values()) {
       totalElements += elements.length;
     }
+
+    logger.info("Pipeline complete", {
+      runId,
+      totalLatencyMs,
+      analyzed: analysisResult.analyses.length,
+      failed: analysisResult.failedCrops.length,
+    });
 
     const response: RunSetResponse = {
       runId,
@@ -797,8 +889,11 @@ runSetRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Respo
         imagesProcessed: request.images.length,
         elementsDetected: totalElements,
         cropsAnalyzed: analysisResult.analyses.length,
+        cropsFailed: analysisResult.failedCrops.length,
         tokensHash: styleResult.lockedStyleGuide.tokensHash,
       },
+      // Include failed crops if any
+      failedCrops: analysisResult.failedCrops.length > 0 ? analysisResult.failedCrops : undefined,
       latency: {
         styleMs: styleResult.latencyMs,
         parseMs: parseResult.latencyMs,
@@ -810,7 +905,7 @@ runSetRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Respo
     res.json(response);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error(`[RunSet] Pipeline failed:`, message);
+    logger.error("Pipeline failed", error, { runId, setId: request.setId });
 
     res.status(500).json({
       error: "Pipeline failed",
