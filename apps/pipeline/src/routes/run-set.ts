@@ -41,6 +41,7 @@ import {
   type StyleAnalysisGemini,
 } from "@boxybop/ir";
 import { getEnv } from "../config/env.js";
+import { expensiveEndpointLimiter, MAX_BASE64_SIZE } from "../middleware/security.js";
 
 export const runSetRouter: IRouter = Router();
 
@@ -50,7 +51,9 @@ export const runSetRouter: IRouter = Router();
 
 const ImageInputSchema = z.object({
   id: z.string().min(1),
-  base64: z.string().min(1),
+  base64: z.string().min(1).max(MAX_BASE64_SIZE, {
+    message: `Base64 payload exceeds maximum size of ${MAX_BASE64_SIZE} bytes (~10MB decoded)`,
+  }),
   mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
@@ -644,8 +647,12 @@ async function analyzeCrops(
  * Run the full pipeline on a set of images.
  *
  * Output: runs/<run_id>/ir.json with all pipeline artifacts.
+ *
+ * SECURITY:
+ * - Rate limited (5 requests/minute) to prevent API cost abuse
+ * - Base64 payloads limited to ~10MB each to prevent memory exhaustion
  */
-runSetRouter.post("/", async (req: Request, res: Response): Promise<void> => {
+runSetRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Response): Promise<void> => {
   const totalStartTime = Date.now();
 
   // Validate request

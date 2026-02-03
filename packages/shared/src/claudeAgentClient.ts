@@ -272,16 +272,41 @@ interface RawClaudeResponse {
 
 /**
  * Claude Agent SDK client for style refinement.
+ *
+ * SECURITY NOTE: API keys are stored only in instance memory and never
+ * written to process.env to prevent key persistence across requests.
  */
 export class ClaudeAgentClient {
   private model: string;
+  private apiKey: string | undefined;
 
   constructor(options: ClaudeAgentClientOptions = {}) {
     this.model = options.model || CLAUDE_MODEL;
+    // Store API key in instance memory only - never mutate process.env
+    this.apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY;
+  }
 
-    // Set API key in environment if provided
-    if (options.apiKey && !process.env.ANTHROPIC_API_KEY) {
-      process.env.ANTHROPIC_API_KEY = options.apiKey;
+  /**
+   * Ensure the Claude Agent SDK has access to the API key.
+   * This temporarily sets the env var only if needed, then cleans up.
+   */
+  private async withApiKey<T>(fn: () => Promise<T>): Promise<T> {
+    const hadEnvKey = !!process.env.ANTHROPIC_API_KEY;
+    const originalKey = process.env.ANTHROPIC_API_KEY;
+
+    try {
+      // Only set if we have a key and env doesn't already have one
+      if (this.apiKey && !hadEnvKey) {
+        process.env.ANTHROPIC_API_KEY = this.apiKey;
+      }
+      return await fn();
+    } finally {
+      // Restore original state
+      if (!hadEnvKey && this.apiKey) {
+        delete process.env.ANTHROPIC_API_KEY;
+      } else if (hadEnvKey && originalKey) {
+        process.env.ANTHROPIC_API_KEY = originalKey;
+      }
     }
   }
 
@@ -289,13 +314,14 @@ export class ClaudeAgentClient {
    * Refine Gemini style analysis into locked tokens.
    */
   async refineStyle(input: StyleRefinementInput): Promise<StyleRefinementResult> {
-    const startTime = Date.now();
+    return this.withApiKey(async () => {
+      const startTime = Date.now();
 
-    const { geminiAnalysis, styleRunId } = input;
+      const { geminiAnalysis, styleRunId } = input;
 
-    // Build the prompt with Gemini analysis data
-    const analysisJson = JSON.stringify(geminiAnalysis, null, 2);
-    const fullPrompt = `${STYLE_REFINEMENT_PROMPT}
+      // Build the prompt with Gemini analysis data
+      const analysisJson = JSON.stringify(geminiAnalysis, null, 2);
+      const fullPrompt = `${STYLE_REFINEMENT_PROMPT}
 
 ## Gemini Style Analysis
 
@@ -305,26 +331,26 @@ ${analysisJson}
 
 Produce the locked style guide JSON:`;
 
-    // Collect all messages from the agent
-    let responseText = "";
+      // Collect all messages from the agent
+      let responseText = "";
 
-    for await (const message of query({
-      prompt: fullPrompt,
-      options: {
-        allowedTools: [], // No tools needed - just text generation
-        model: this.model,
-      },
-    })) {
-      if (message.type === "assistant" && message.message?.content) {
-        for (const block of message.message.content) {
-          if ("text" in block && typeof block.text === "string") {
-            responseText += block.text;
+      for await (const message of query({
+        prompt: fullPrompt,
+        options: {
+          allowedTools: [], // No tools needed - just text generation
+          model: this.model,
+        },
+      })) {
+        if (message.type === "assistant" && message.message?.content) {
+          for (const block of message.message.content) {
+            if ("text" in block && typeof block.text === "string") {
+              responseText += block.text;
+            }
           }
         }
       }
-    }
 
-    const latencyMs = Date.now() - startTime;
+      const latencyMs = Date.now() - startTime;
 
     // Parse the JSON response
     let rawResponse: RawClaudeResponse;
@@ -415,14 +441,15 @@ Produce the locked style guide JSON:`;
       geminiAnalysis
     );
 
-    const totalLatencyMs = Date.now() - startTime;
+      const totalLatencyMs = Date.now() - startTime;
 
-    return {
-      styleGuide,
-      styleGuideMd,
-      designMd,
-      latencyMs: totalLatencyMs,
-    };
+      return {
+        styleGuide,
+        styleGuideMd,
+        designMd,
+        latencyMs: totalLatencyMs,
+      };
+    });
   }
 
   /**
@@ -433,7 +460,8 @@ Produce the locked style guide JSON:`;
     styleGuide: StyleGuideLocked,
     geminiAnalysis: StyleAnalysisGemini
   ): Promise<string> {
-    const dataPrompt = `
+    return this.withApiKey(async () => {
+      const dataPrompt = `
 ## Locked Style Guide (JSON)
 \`\`\`json
 ${JSON.stringify(styleGuide, null, 2)}
@@ -446,61 +474,64 @@ ${JSON.stringify(geminiAnalysis, null, 2)}
 
 Generate the documentation:`;
 
-    let responseText = "";
+      let responseText = "";
 
-    for await (const message of query({
-      prompt: `${systemPrompt}\n\n${dataPrompt}`,
-      options: {
-        allowedTools: [],
-        model: this.model,
-      },
-    })) {
-      if (message.type === "assistant" && message.message?.content) {
-        for (const block of message.message.content) {
-          if ("text" in block && typeof block.text === "string") {
-            responseText += block.text;
+      for await (const message of query({
+        prompt: `${systemPrompt}\n\n${dataPrompt}`,
+        options: {
+          allowedTools: [],
+          model: this.model,
+        },
+      })) {
+        if (message.type === "assistant" && message.message?.content) {
+          for (const block of message.message.content) {
+            if ("text" in block && typeof block.text === "string") {
+              responseText += block.text;
+            }
           }
         }
       }
-    }
 
-    // Clean up any accidental code block wrapping
-    let cleanedResponse = responseText.trim();
-    if (cleanedResponse.startsWith("```markdown")) {
-      cleanedResponse = cleanedResponse.slice(11);
-    } else if (cleanedResponse.startsWith("```md")) {
-      cleanedResponse = cleanedResponse.slice(5);
-    } else if (cleanedResponse.startsWith("```")) {
-      cleanedResponse = cleanedResponse.slice(3);
-    }
-    if (cleanedResponse.endsWith("```")) {
-      cleanedResponse = cleanedResponse.slice(0, -3);
-    }
+      // Clean up any accidental code block wrapping
+      let cleanedResponse = responseText.trim();
+      if (cleanedResponse.startsWith("```markdown")) {
+        cleanedResponse = cleanedResponse.slice(11);
+      } else if (cleanedResponse.startsWith("```md")) {
+        cleanedResponse = cleanedResponse.slice(5);
+      } else if (cleanedResponse.startsWith("```")) {
+        cleanedResponse = cleanedResponse.slice(3);
+      }
+      if (cleanedResponse.endsWith("```")) {
+        cleanedResponse = cleanedResponse.slice(0, -3);
+      }
 
-    return cleanedResponse.trim();
+      return cleanedResponse.trim();
+    });
   }
 
   /**
    * Health check - verify SDK is properly configured.
    */
   async healthCheck(): Promise<boolean> {
-    try {
-      // Simple query to verify connectivity
-      for await (const message of query({
-        prompt: "Reply with exactly: OK",
-        options: {
-          allowedTools: [],
-          model: this.model,
-        },
-      })) {
-        if (message.type === "result" && message.subtype === "success") {
-          return true;
+    return this.withApiKey(async () => {
+      try {
+        // Simple query to verify connectivity
+        for await (const message of query({
+          prompt: "Reply with exactly: OK",
+          options: {
+            allowedTools: [],
+            model: this.model,
+          },
+        })) {
+          if (message.type === "result" && message.subtype === "success") {
+            return true;
+          }
         }
+        return false;
+      } catch {
+        return false;
       }
-      return false;
-    } catch {
-      return false;
-    }
+    });
   }
 }
 

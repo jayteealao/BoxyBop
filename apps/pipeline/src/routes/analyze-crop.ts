@@ -11,16 +11,20 @@ import {
   type StyleGuideLocked,
 } from "@boxybop/ir";
 import { getEnv } from "../config/env.js";
+import { expensiveEndpointLimiter, MAX_BASE64_SIZE } from "../middleware/security.js";
 
 export const analyzeCropRouter: IRouter = Router();
 
 /**
  * Request body schema for analyze-crop endpoint.
+ * Base64 payloads are limited to prevent memory exhaustion attacks.
  */
 const AnalyzeCropRequestSchema = z.object({
   setId: z.string().min(1),
   cropId: z.string().uuid(),
-  cropPngBase64: z.string().min(1),
+  cropPngBase64: z.string().min(1).max(MAX_BASE64_SIZE, {
+    message: `Base64 payload exceeds maximum size of ${MAX_BASE64_SIZE} bytes (~10MB decoded)`,
+  }),
   cropSha256: z.string().regex(/^[a-f0-9]{64}$/, "Must be valid SHA-256 hex"),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
@@ -104,8 +108,12 @@ async function loadLockedStyleGuide(
  *
  * CRITICAL: Rejects crops that match full screenshot dimensions.
  * Only cropped regions should be analyzed, not full screenshots.
+ *
+ * SECURITY:
+ * - Rate limited (5 requests/minute) to prevent API cost abuse
+ * - Base64 payloads limited to ~10MB to prevent memory exhaustion
  */
-analyzeCropRouter.post("/", async (req: Request, res: Response): Promise<void> => {
+analyzeCropRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Response): Promise<void> => {
   const totalStartTime = Date.now();
 
   // Validate request body

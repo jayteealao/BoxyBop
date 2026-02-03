@@ -38,6 +38,7 @@ import {
 } from "@boxybop/ir";
 import { getEnv } from "../config/env.js";
 import { runGenerator, type GeneratorConfig } from "../codegen/generator.js";
+import { expensiveEndpointLimiter } from "../middleware/security.js";
 
 export const codegenRouter: IRouter = Router();
 
@@ -330,7 +331,7 @@ Respond with the complete JSON containing all files.`;
 // Route Handler
 // =============================================================================
 
-codegenRouter.post("/", async (req: Request, res: Response): Promise<void> => {
+codegenRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Response): Promise<void> => {
   const startTime = Date.now();
 
   // Validate request
@@ -630,8 +631,11 @@ type CodegenV2Request = z.infer<typeof CodegenV2RequestSchema>;
  * - Inferred components from pattern detection
  *
  * The endpoint is idempotent - calling it again will resume from where it left off.
+ *
+ * SECURITY:
+ * - Rate limited (5 requests/minute) to prevent API cost abuse
  */
-codegenRouter.post("/v2", async (req: Request, res: Response): Promise<void> => {
+codegenRouter.post("/v2", expensiveEndpointLimiter, async (req: Request, res: Response): Promise<void> => {
   const startTime = Date.now();
 
   // Validate request

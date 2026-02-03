@@ -6,16 +6,25 @@ import {
   type OmniParserResponse,
 } from "@boxybop/shared";
 import { getEnv } from "../config/env.js";
+import {
+  sanitizePath,
+  PathTraversalError,
+  expensiveEndpointLimiter,
+  MAX_BASE64_SIZE,
+} from "../middleware/security.js";
 
 export const parseRouter: IRouter = Router();
 
 /**
- * Request body schema for parse endpoint
+ * Request body schema for parse endpoint.
+ * Base64 payloads are limited to prevent memory exhaustion attacks.
  */
 const ParseRequestSchema = z.union([
   z.object({
     image_id: z.string().min(1),
-    image_png_base64: z.string().min(1),
+    image_png_base64: z.string().min(1).max(MAX_BASE64_SIZE, {
+      message: `Base64 payload exceeds maximum size of ${MAX_BASE64_SIZE} bytes (~10MB decoded)`,
+    }),
     width: z.number().int().positive(),
     height: z.number().int().positive(),
     box_threshold: z.number().min(0).max(1).optional(),
@@ -107,8 +116,13 @@ function transformResponse(
  * Output: { image_id, width, height, elements:[{id,bbox:{x,y,w,h}, type?, text?, confidence?, source}] }
  *
  * bbox coordinates are in ORIGINAL pixel space.
+ *
+ * SECURITY:
+ * - Rate limited (5 requests/minute) to prevent API cost abuse
+ * - Base64 payloads limited to ~10MB to prevent memory exhaustion
+ * - path_on_disk sanitized to prevent path traversal attacks
  */
-parseRouter.post("/", async (req: Request, res: Response): Promise<void> => {
+parseRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Response): Promise<void> => {
   // Validate request body first (before checking service availability)
   const parseResult = ParseRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
@@ -151,8 +165,23 @@ parseRouter.post("/", async (req: Request, res: Response): Promise<void> => {
         { box_threshold, iou_threshold, imgsz }
       );
     } else {
-      // Parse from file path
-      if (!fs.existsSync(body.path_on_disk)) {
+      // Parse from file path - SECURITY: sanitize to prevent path traversal
+      let safePath: string;
+      try {
+        safePath = sanitizePath(body.path_on_disk);
+      } catch (err) {
+        if (err instanceof PathTraversalError) {
+          console.warn(`[Parse] Path traversal attempt blocked: ${body.path_on_disk}`);
+          res.status(403).json({
+            error: "Access denied",
+            message: "The specified path is not allowed",
+          });
+          return;
+        }
+        throw err;
+      }
+
+      if (!fs.existsSync(safePath)) {
         res.status(400).json({
           error: "File not found",
           path: body.path_on_disk,
@@ -161,7 +190,7 @@ parseRouter.post("/", async (req: Request, res: Response): Promise<void> => {
       }
 
       response = await client.parseScreenshotFromFile(
-        body.path_on_disk,
+        safePath,
         width,
         height,
         { box_threshold, iou_threshold, imgsz }

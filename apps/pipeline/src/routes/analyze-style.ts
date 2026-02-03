@@ -15,21 +15,25 @@ import {
   type StyleGuideLocked,
 } from "@boxybop/ir";
 import { getEnv } from "../config/env.js";
+import { expensiveEndpointLimiter, MAX_BASE64_SIZE } from "../middleware/security.js";
 
 export const analyzeStyleRouter: IRouter = Router();
 
 /**
- * Request body schema for analyze-style-set endpoint
+ * Request body schema for analyze-style-set endpoint.
+ * Base64 payloads are limited to prevent memory exhaustion attacks.
  */
 const AnalyzeStyleRequestSchema = z.object({
   imageSetId: z.string().min(1),
   images: z.array(
     z.object({
       id: z.string().min(1),
-      base64: z.string().min(1),
+      base64: z.string().min(1).max(MAX_BASE64_SIZE, {
+        message: `Base64 payload exceeds maximum size of ${MAX_BASE64_SIZE} bytes (~10MB decoded)`,
+      }),
       mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
     })
-  ).min(1),
+  ).min(1).max(20, { message: "Maximum 20 images per request" }),
   outputDir: z.string().min(1).optional(), // Where to store artifacts
 });
 
@@ -76,8 +80,13 @@ async function ensureDir(dirPath: string): Promise<void> {
  *
  * CRITICAL: locked_tokens.json is IMMUTABLE after creation.
  * Later pipeline steps must treat it as read-only input.
+ *
+ * SECURITY:
+ * - Rate limited (5 requests/minute) to prevent API cost abuse
+ * - Base64 payloads limited to ~10MB each to prevent memory exhaustion
+ * - Maximum 20 images per request
  */
-analyzeStyleRouter.post("/", async (req: Request, res: Response): Promise<void> => {
+analyzeStyleRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Response): Promise<void> => {
   const totalStartTime = Date.now();
 
   // Validate request body
