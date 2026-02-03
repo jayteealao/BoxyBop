@@ -16,6 +16,7 @@ import {
 } from "@boxybop/ir";
 import { getEnv } from "../config/env.js";
 import { expensiveEndpointLimiter, MAX_BASE64_SIZE } from "../middleware/security.js";
+import { ensureDir } from "../utils/fsUtils.js";
 
 export const analyzeStyleRouter: IRouter = Router();
 
@@ -60,13 +61,6 @@ const AnalyzeStyleResponseSchema = z.object({
 });
 
 type AnalyzeStyleResponse = z.infer<typeof AnalyzeStyleResponseSchema>;
-
-/**
- * Ensure directory exists, creating it if necessary.
- */
-async function ensureDir(dirPath: string): Promise<void> {
-  await fs.mkdir(dirPath, { recursive: true });
-}
 
 /**
  * POST /api/analyze-style-set

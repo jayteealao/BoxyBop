@@ -45,6 +45,7 @@ import {
 import { getEnv } from "../config/env.js";
 import { expensiveEndpointLimiter, MAX_BASE64_SIZE } from "../middleware/security.js";
 import { getRequestLogger, type Logger } from "../middleware/logging.js";
+import { ensureDir } from "../utils/fsUtils.js";
 
 export const runSetRouter: IRouter = Router();
 
@@ -156,10 +157,6 @@ const API_RETRY_OPTIONS: RetryOptions = {
 // =============================================================================
 // Helpers
 // =============================================================================
-
-async function ensureDir(dirPath: string): Promise<void> {
-  await fs.mkdir(dirPath, { recursive: true });
-}
 
 async function loadLockedStyleGuide(
   runsDir: string,

@@ -328,11 +328,27 @@ Respond with the complete JSON containing all files.`;
 }
 
 // =============================================================================
-// Route Handler
+// Route Handler (DEPRECATED)
 // =============================================================================
 
+/**
+ * @deprecated Use POST /codegen/v2 instead.
+ *
+ * This endpoint uses batch generation (single Claude call) which is less
+ * reliable for large component sets. The v2 endpoint generates components
+ * one at a time with state tracking for resume/retry.
+ *
+ * This endpoint will be removed in a future version.
+ */
 codegenRouter.post("/", expensiveEndpointLimiter, async (req: Request, res: Response): Promise<void> => {
   const startTime = Date.now();
+
+  // Send deprecation warning header
+  res.setHeader("Deprecation", "true");
+  res.setHeader("Sunset", "2026-06-01");
+  res.setHeader("Link", '</api/codegen/v2>; rel="successor-version"');
+
+  console.warn("[Codegen] WARNING: POST /codegen is deprecated. Use POST /codegen/v2 instead.");
 
   // Validate request
   const parseResult = CodegenRequestSchema.safeParse(req.body);
