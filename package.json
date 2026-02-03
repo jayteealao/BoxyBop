@@ -5,12 +5,17 @@
   "description": "UI Screenshot → Tokens + Components Studio",
   "type": "module",
   "scripts": {
+    "dev": "pnpm -r --parallel --filter '@boxybop/studio' --filter '@boxybop/pipeline' dev",
+    "dev:studio": "pnpm --filter '@boxybop/studio' dev",
+    "dev:pipeline": "pnpm --filter '@boxybop/pipeline' dev",
     "build": "pnpm -r build",
+    "build:packages": "pnpm --filter '@boxybop/ir' --filter '@boxybop/shared' build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "clean": "rm -rf node_modules packages/*/node_modules apps/*/node_modules packages/*/dist apps/*/dist"
   },
   "devDependencies": {
     "prettier": "^3.2.0",
