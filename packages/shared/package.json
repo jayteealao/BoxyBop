@@ -35,6 +35,7 @@
     "@boxybop/ir": "workspace:*",
     "@google/genai": "^1.37.0",
     "replicate": "^0.25.0",
+    "sharp": "^0.33.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {

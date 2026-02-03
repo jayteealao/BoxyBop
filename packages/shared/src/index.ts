@@ -37,3 +37,15 @@ export {
   type StyleRefinementInput,
   type StyleRefinementResult,
 } from "./claudeAgentClient.js";
+
+export {
+  cropImage,
+  cropImageFromBase64,
+  getImageDimensions,
+  computeSha256,
+  filterTinyBoxes,
+  computeIoU,
+  dedupeByIoU,
+  type BBox as CropBBox,
+  type CropResult,
+} from "./cropUtils.js";

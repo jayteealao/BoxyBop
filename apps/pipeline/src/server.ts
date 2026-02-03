@@ -5,6 +5,7 @@ import { sessionsRouter } from "./routes/sessions.js";
 import { parseRouter } from "./routes/parse.js";
 import { analyzeStyleRouter } from "./routes/analyze-style.js";
 import { analyzeCropRouter } from "./routes/analyze-crop.js";
+import { runSetRouter } from "./routes/run-set.js";
 import { validateEnv } from "./config/env.js";
 
 // Validate required environment variables
@@ -23,6 +24,7 @@ app.use("/api/sessions", sessionsRouter);
 app.use("/api/parse", parseRouter);
 app.use("/api/analyze-style-set", analyzeStyleRouter);
 app.use("/api/analyze-crop", analyzeCropRouter);
+app.use("/api/run-set", runSetRouter);
 
 // Error handling
 app.use(
