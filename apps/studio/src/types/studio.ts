@@ -53,12 +53,44 @@ export interface ParseResult {
   };
 }
 
+/** Crop specification in ORIGINAL pixel coordinates */
+export interface CropSpec {
+  id: string;
+  imageId: string;
+  sourceElementId?: string;
+  region: BBox;
+  label?: string;
+  humanAdjusted: boolean;
+  updatedAt: string;
+}
+
+/** Crop artifact with PNG data and hash */
+export interface CropArtifact {
+  id: string;
+  cropSpecId: string;
+  sourceImageId: string;
+  /** PNG as base64 (without data: prefix) */
+  pngBase64: string;
+  /** Data URL for preview */
+  dataUrl: string;
+  /** SHA-256 hash of PNG bytes */
+  contentHash: string;
+  dimensions: {
+    width: number;
+    height: number;
+  };
+  fileSizeBytes: number;
+  createdAt: string;
+}
+
 /** Studio session state */
 export interface StudioState {
   images: StudioImage[];
   currentImageIndex: number;
   elements: Map<string, DetectedElement[]>; // imageId -> elements
   selectedElementId: string | null;
+  crops: Map<string, CropSpec[]>; // imageId -> crops
+  artifacts: Map<string, CropArtifact>; // cropSpecId -> artifact
   isLoading: boolean;
   error: string | null;
 }
