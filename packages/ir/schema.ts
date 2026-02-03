@@ -1075,6 +1075,148 @@ export const StyleGuideLockedSchema = z.object({
 export type StyleGuideLocked = z.infer<typeof StyleGuideLockedSchema>;
 
 // =============================================================================
+// CropAnalysis (Gemini analysis of a crop using locked tokens)
+// =============================================================================
+
+/**
+ * Token reference in crop analysis.
+ * Maps what was visually observed to a locked token.
+ */
+export const TokenReferenceSchema = z.object({
+  /** CSS variable name (e.g., "--color-primary") */
+  cssVar: z.string(),
+  /** Context where this token applies (e.g., "background", "border", "text") */
+  context: z.string(),
+  /** Confidence that this token matches what's visible */
+  confidence: ConfidenceSchema,
+});
+
+export type TokenReference = z.infer<typeof TokenReferenceSchema>;
+
+/**
+ * Detected element within a crop.
+ */
+export const DetectedElementSchema = z.object({
+  /** What type of element this is */
+  type: z.enum([
+    "button",
+    "input",
+    "text",
+    "icon",
+    "image",
+    "badge",
+    "avatar",
+    "card",
+    "container",
+    "divider",
+    "checkbox",
+    "radio",
+    "toggle",
+    "dropdown",
+    "other",
+  ]),
+  /** Description of the element */
+  description: z.string(),
+  /** Approximate bounding box within the crop (percentages 0-100) */
+  bounds: z.object({
+    xPercent: z.number().min(0).max(100),
+    yPercent: z.number().min(0).max(100),
+    widthPercent: z.number().min(0).max(100),
+    heightPercent: z.number().min(0).max(100),
+  }).optional(),
+  /** Tokens that apply to this element */
+  tokenRefs: z.array(TokenReferenceSchema),
+});
+
+export type DetectedElement = z.infer<typeof DetectedElementSchema>;
+
+/**
+ * Gemini analysis of a cropped image using locked tokens as reference.
+ * This analysis describes what is seen in terms of the locked style guide.
+ */
+export const CropAnalysisSchema = z.object({
+  /** Unique identifier */
+  id: UuidSchema,
+  /** ID of the crop artifact analyzed */
+  cropId: UuidSchema,
+  /** Set ID this crop belongs to */
+  setId: z.string(),
+  /** SHA-256 hash of the crop PNG */
+  cropHash: Sha256HashSchema,
+  /** Dimensions of the analyzed crop */
+  dimensions: DimensionsSchema,
+  /** Reference to the locked tokens used */
+  lockedTokensRef: z.object({
+    /** Style run ID */
+    styleRunId: z.string(),
+    /** SHA-256 hash of the locked tokens (for integrity verification) */
+    tokensHash: Sha256HashSchema,
+  }),
+
+  /** Gemini model used */
+  model: z.string(),
+  /** Version of the analysis prompt */
+  promptVersion: SemverSchema,
+  /** When analysis was performed */
+  analyzedAt: TimestampSchema,
+  /** Latency in milliseconds */
+  latencyMs: z.number().int().nonnegative(),
+
+  /** High-level description of what's in the crop */
+  description: z.string(),
+  /** Suggested component name (PascalCase) */
+  suggestedComponentName: z.string().optional(),
+  /** Component category */
+  category: z.enum([
+    "layout",
+    "navigation",
+    "form",
+    "feedback",
+    "data-display",
+    "overlay",
+    "typography",
+    "media",
+    "composite",
+  ]),
+
+  /** Elements detected in the crop */
+  elements: z.array(DetectedElementSchema),
+
+  /** Color tokens observed in the crop */
+  colorTokensUsed: z.array(TokenReferenceSchema),
+  /** Typography tokens observed */
+  typographyTokensUsed: z.array(TokenReferenceSchema),
+  /** Spacing tokens observed */
+  spacingTokensUsed: z.array(TokenReferenceSchema),
+  /** Radius tokens observed */
+  radiusTokensUsed: z.array(TokenReferenceSchema),
+  /** Shadow tokens observed */
+  shadowTokensUsed: z.array(TokenReferenceSchema),
+
+  /** Detected states (if any) */
+  states: z.array(z.enum(["default", "hover", "active", "focus", "disabled", "loading"])),
+  /** Detected variants (e.g., "primary", "secondary", "outline") */
+  variants: z.array(z.string()),
+
+  /** Observations about the visual style */
+  observations: z.object({
+    /** Alignment patterns */
+    alignment: z.enum(["left", "center", "right", "justified", "mixed"]).optional(),
+    /** Content density */
+    density: z.enum(["compact", "comfortable", "spacious"]).optional(),
+    /** Has hover/interactive indicators */
+    hasInteractiveIndicators: z.boolean().optional(),
+    /** Notes about visual patterns */
+    notes: z.string().optional(),
+  }),
+
+  /** Raw Gemini response for debugging */
+  rawResponse: z.record(z.unknown()).optional(),
+});
+
+export type CropAnalysis = z.infer<typeof CropAnalysisSchema>;
+
+// =============================================================================
 // Session (top-level container)
 // =============================================================================
 
@@ -1180,4 +1322,8 @@ export const schemas = {
   LockedMotionTokenSchema,
   StyleRuleSchema,
   LockedComponentGuideSchema,
+  // Crop analysis
+  TokenReferenceSchema,
+  DetectedElementSchema,
+  CropAnalysisSchema,
 };

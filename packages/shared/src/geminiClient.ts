@@ -12,6 +12,7 @@ import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
 const GEMINI_MODEL = "gemini-3-flash-preview";
 const STYLE_ANALYSIS_PROMPT_VERSION = "2.0.0";
+const CROP_ANALYSIS_PROMPT_VERSION = "1.0.0";
 
 /**
  * Gemini client options.
@@ -126,6 +127,138 @@ Guidelines:
 - Note which images support which style rules in imageReferences
 
 IMPORTANT: After your analysis, output ONLY the final JSON object with no additional text or markdown.`;
+
+/**
+ * Input for crop analysis.
+ */
+export interface CropAnalysisInput {
+  /** Crop image as base64 PNG */
+  base64: string;
+  /** Crop ID */
+  cropId: string;
+  /** Set ID */
+  setId: string;
+  /** SHA-256 hash of the crop PNG */
+  cropHash: string;
+  /** Crop dimensions */
+  width: number;
+  height: number;
+  /** Locked tokens to reference */
+  lockedTokens: {
+    styleRunId: string;
+    tokensHash: string;
+    tokens: {
+      colors: Array<{ cssVar: string; value: string; role: string }>;
+      typography: Array<{ cssVar: string; fontSize: string; fontWeight: number }>;
+      spacing: Array<{ cssVar: string; value: string }>;
+      radius: Array<{ cssVar: string; value: string }>;
+      shadows: Array<{ cssVar: string; value: string }>;
+    };
+  };
+}
+
+/**
+ * Raw response from Gemini crop analysis.
+ */
+export interface GeminiCropAnalysisResponse {
+  description: string;
+  suggestedComponentName?: string;
+  category: string;
+  elements: Array<{
+    type: string;
+    description: string;
+    bounds?: {
+      xPercent: number;
+      yPercent: number;
+      widthPercent: number;
+      heightPercent: number;
+    };
+    tokenRefs: Array<{
+      cssVar: string;
+      context: string;
+      confidence: number;
+    }>;
+  }>;
+  colorTokensUsed: Array<{ cssVar: string; context: string; confidence: number }>;
+  typographyTokensUsed: Array<{ cssVar: string; context: string; confidence: number }>;
+  spacingTokensUsed: Array<{ cssVar: string; context: string; confidence: number }>;
+  radiusTokensUsed: Array<{ cssVar: string; context: string; confidence: number }>;
+  shadowTokensUsed: Array<{ cssVar: string; context: string; confidence: number }>;
+  states: string[];
+  variants: string[];
+  observations: {
+    alignment?: string;
+    density?: string;
+    hasInteractiveIndicators?: boolean;
+    notes?: string;
+  };
+}
+
+/**
+ * Build the crop analysis prompt with locked tokens.
+ */
+function buildCropAnalysisPrompt(lockedTokens: CropAnalysisInput["lockedTokens"]): string {
+  const tokensSection = `
+## Locked Design Tokens (use these CSS variables in your analysis)
+
+### Colors
+${lockedTokens.tokens.colors.map((c) => `- ${c.cssVar}: ${c.value} (${c.role})`).join("\n")}
+
+### Typography
+${lockedTokens.tokens.typography.map((t) => `- ${t.cssVar}: ${t.fontSize}, weight ${t.fontWeight}`).join("\n")}
+
+### Spacing
+${lockedTokens.tokens.spacing.map((s) => `- ${s.cssVar}: ${s.value}`).join("\n")}
+
+### Border Radius
+${lockedTokens.tokens.radius.map((r) => `- ${r.cssVar}: ${r.value}`).join("\n")}
+
+### Shadows
+${lockedTokens.tokens.shadows.map((s) => `- ${s.cssVar}: ${s.value}`).join("\n")}
+`;
+
+  return `You are a UI component analyzer. Analyze this cropped UI element and describe what you see using ONLY the locked design tokens provided below.
+
+${tokensSection}
+
+CRITICAL: You must reference the provided CSS variable names (e.g., --color-primary, --space-4) when describing colors, typography, spacing, radius, and shadows. Do NOT invent new tokens or use raw values.
+
+Analyze the cropped image and output ONLY valid JSON conforming to this schema:
+{
+  "description": "High-level description of what this UI element is",
+  "suggestedComponentName": "PascalCase component name (e.g., PrimaryButton, SearchInput)",
+  "category": "layout|navigation|form|feedback|data-display|overlay|typography|media|composite",
+  "elements": [{
+    "type": "button|input|text|icon|image|badge|avatar|card|container|divider|checkbox|radio|toggle|dropdown|other",
+    "description": "What this element is",
+    "bounds": { "xPercent": 0-100, "yPercent": 0-100, "widthPercent": 0-100, "heightPercent": 0-100 },
+    "tokenRefs": [{ "cssVar": "--token-name", "context": "background|border|text|fill|etc", "confidence": 0-1 }]
+  }],
+  "colorTokensUsed": [{ "cssVar": "--color-*", "context": "where used", "confidence": 0-1 }],
+  "typographyTokensUsed": [{ "cssVar": "--text-*", "context": "where used", "confidence": 0-1 }],
+  "spacingTokensUsed": [{ "cssVar": "--space-*", "context": "padding|margin|gap", "confidence": 0-1 }],
+  "radiusTokensUsed": [{ "cssVar": "--radius-*", "context": "which corners", "confidence": 0-1 }],
+  "shadowTokensUsed": [{ "cssVar": "--shadow-*", "context": "where applied", "confidence": 0-1 }],
+  "states": ["default", "hover", "active", "focus", "disabled", "loading"],
+  "variants": ["primary", "secondary", "outline", etc.],
+  "observations": {
+    "alignment": "left|center|right|justified|mixed",
+    "density": "compact|comfortable|spacious",
+    "hasInteractiveIndicators": true/false,
+    "notes": "any additional observations"
+  }
+}
+
+Guidelines:
+- Match colors to the closest locked color token
+- Match font sizes and weights to locked typography tokens
+- Match spacing values to locked spacing tokens
+- Match corner rounding to locked radius tokens
+- If you can't find a matching token, note it in observations.notes
+- Confidence should reflect how certain you are about the token match (1.0 = exact match, 0.5 = approximate)
+
+Output ONLY the JSON object with no additional text or markdown.`;
+}
 
 /**
  * Gemini client for style analysis using Agentic Vision.
@@ -268,6 +401,113 @@ export class GeminiClient {
       analysis,
       model: GEMINI_MODEL,
       promptVersion: STYLE_ANALYSIS_PROMPT_VERSION,
+      latencyMs,
+    };
+  }
+
+  /**
+   * Analyze a crop using locked tokens as reference.
+   *
+   * The model will describe what it sees using only the provided locked tokens.
+   */
+  async analyzeCrop(
+    input: CropAnalysisInput
+  ): Promise<{
+    analysis: GeminiCropAnalysisResponse;
+    model: string;
+    promptVersion: string;
+    latencyMs: number;
+  }> {
+    const startTime = Date.now();
+
+    // Build the prompt with locked tokens
+    const prompt = buildCropAnalysisPrompt(input.lockedTokens);
+
+    // Build multimodal content
+    type ContentPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+    const contents: ContentPart[] = [
+      {
+        inlineData: {
+          mimeType: "image/png",
+          data: input.base64,
+        },
+      },
+      {
+        text: `[Crop ID: ${input.cropId}, Dimensions: ${input.width}x${input.height}]`,
+      },
+      {
+        text: prompt,
+      },
+    ];
+
+    console.log(`[Gemini] Analyzing crop ${input.cropId} (${input.width}x${input.height}) with locked tokens`);
+
+    // Call Gemini with Code Execution enabled
+    const response = await this.ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents,
+      config: {
+        tools: [{ codeExecution: {} }],
+        thinkingConfig: {
+          thinkingLevel: this.thinkingLevel,
+        },
+        temperature: 0.1,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 8192,
+      },
+    });
+
+    const latencyMs = Date.now() - startTime;
+
+    // Extract text response
+    const parts = response?.candidates?.[0]?.content?.parts || [];
+    let analysisText = "";
+
+    for (const part of parts) {
+      if ("text" in part && part.text) {
+        analysisText += part.text;
+      }
+    }
+
+    if (!analysisText) {
+      throw new Error("No content in Gemini crop analysis response");
+    }
+
+    // Extract JSON from response
+    let jsonText = analysisText;
+
+    const jsonMatch = analysisText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[1].trim();
+    } else {
+      const jsonStartIndex = analysisText.indexOf("{");
+      const jsonEndIndex = analysisText.lastIndexOf("}");
+      if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
+        jsonText = analysisText.slice(jsonStartIndex, jsonEndIndex + 1);
+      }
+    }
+
+    // Parse JSON response
+    let analysis: GeminiCropAnalysisResponse;
+    try {
+      analysis = JSON.parse(jsonText);
+    } catch (err) {
+      console.error("[Gemini] Failed to parse crop analysis JSON:", jsonText.slice(0, 500));
+      throw new Error(`Failed to parse Gemini crop analysis response: ${err}`);
+    }
+
+    console.log(`[Gemini] Crop analysis complete in ${latencyMs}ms:`, {
+      suggestedName: analysis.suggestedComponentName,
+      category: analysis.category,
+      elements: analysis.elements?.length ?? 0,
+      colorTokens: analysis.colorTokensUsed?.length ?? 0,
+    });
+
+    return {
+      analysis,
+      model: GEMINI_MODEL,
+      promptVersion: CROP_ANALYSIS_PROMPT_VERSION,
       latencyMs,
     };
   }

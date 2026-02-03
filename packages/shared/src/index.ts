@@ -26,6 +26,8 @@ export {
   type GeminiClientOptions,
   type StyleAnalysisImage,
   type GeminiStyleAnalysisResponse,
+  type CropAnalysisInput,
+  type GeminiCropAnalysisResponse,
 } from "./geminiClient.js";
 
 export {
