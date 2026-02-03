@@ -94,3 +94,91 @@ export interface StudioState {
   isLoading: boolean;
   error: string | null;
 }
+
+// =============================================================================
+// Pipeline Types
+// =============================================================================
+
+/** Response from /api/run-set */
+export interface RunSetResponse {
+  runId: string;
+  setId: string;
+  styleRunId: string;
+  irPath: string;
+  summary: {
+    imagesProcessed: number;
+    elementsDetected: number;
+    cropsAnalyzed: number;
+    tokensHash: string;
+  };
+  latency: {
+    styleMs: number;
+    parseMs: number;
+    cropAnalysisMs: number;
+    totalMs: number;
+  };
+}
+
+/** Response from /api/codegen/v2 */
+export interface CodegenResponse {
+  success: boolean;
+  packagePath: string;
+  progress: {
+    total: number;
+    complete: number;
+    failed: number;
+    pending: number;
+  };
+  errors: Array<{ name: string; error: string }>;
+  state: {
+    runId: string;
+    inputChecksum: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  latencyMs: number;
+}
+
+/** Response from /api/codegen/v2/status/:setSlug */
+export interface CodegenStatusResponse {
+  setSlug: string;
+  packagePath: string;
+  state: {
+    runId: string;
+    inputChecksum: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  progress: {
+    total: number;
+    complete: number;
+    failed: number;
+    pending: number;
+    percentage: number;
+  };
+  phases: {
+    tokens: string;
+    primitives: string;
+    detected: Record<string, string>;
+    inferred: Record<string, string>;
+    utilities: Record<string, string>;
+    registry: string;
+  };
+}
+
+/** Generation step status */
+export type GenerationStep = "idle" | "style" | "pipeline" | "codegen" | "complete" | "error";
+
+/** Generation progress state */
+export interface GenerationProgress {
+  step: GenerationStep;
+  logs: string[];
+  styleResult?: {
+    styleRunId: string;
+    tokensHash: string;
+    latencyMs: number;
+  };
+  pipelineResult?: RunSetResponse;
+  codegenResult?: CodegenResponse;
+  error?: string;
+}

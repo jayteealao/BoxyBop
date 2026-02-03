@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ImageUploader } from "./components/ImageUploader";
 import { BoundingBoxOverlay } from "./components/BoundingBoxOverlay";
 import { CropEditor } from "./components/CropEditor";
+import { GenerateLibraryPanel } from "./components/GenerateLibraryPanel";
 import { generateCrop } from "./lib/cropGenerator";
 import type {
   StudioImage,
@@ -645,6 +646,15 @@ h: ${Math.round(currentCropRegion.height)}`}
                 </p>
               </div>
             </div>
+          )}
+
+          {/* Generate Library Panel */}
+          {images.length > 0 && (
+            <GenerateLibraryPanel
+              images={images}
+              crops={crops}
+              disabled={isLoading || isAnalyzingStyle}
+            />
           )}
 
           {/* Image thumbnails */}
