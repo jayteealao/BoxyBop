@@ -28,3 +28,14 @@ export {
   type RegistryInitConfig,
   type RegistryValidationResult,
 } from "./registry.js";
+
+// Storybook exports
+export {
+  setupStorybook,
+  generatePackageJson,
+  generateTsConfig,
+  generateStorybookMain,
+  generateStorybookPreview,
+  generateTestRunnerConfig,
+  generateSnapshotCompareScript,
+} from "./storybook.js";

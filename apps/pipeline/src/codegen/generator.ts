@@ -43,6 +43,7 @@ import {
   loadGenerationState,
   saveGenerationState,
 } from "./registry.js";
+import { setupStorybook } from "./storybook.js";
 import type { Registry, GenerationState as RegistryGenerationState } from "@boxybop/registry";
 
 /**
@@ -739,6 +740,10 @@ export async function runGenerator(config: GeneratorConfig): Promise<GeneratorRe
           // Also generate barrel export
           const indexContent = generateIndexFile(completedComponents);
           await fs.writeFile(path.join(config.outputDir, "components", "index.ts"), indexContent);
+
+          // Setup Storybook configuration
+          await setupStorybook(config.outputDir, config.setSlug, config.lockedTokens);
+          console.log(`[Codegen] Generated Storybook configuration`);
 
           markComplete(state, next.name, next.type, registryPath);
           console.log(`[Codegen] Generated registry.json`);
