@@ -1,0 +1,36 @@
+{
+  "name": "@boxybop/ir",
+  "version": "0.1.0",
+  "description": "Intermediate Representation schema for BoxyBop pipeline",
+  "type": "module",
+  "main": "./dist/schema.js",
+  "types": "./dist/schema.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js"
+    },
+    "./schema.json": "./schema.json"
+  },
+  "files": [
+    "dist",
+    "schema.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "generate-json-schema": "tsx scripts/generate-json-schema.ts",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0",
+    "zod-to-json-schema": "^3.22.0"
+  }
+}

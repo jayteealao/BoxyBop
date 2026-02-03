@@ -1,0 +1,619 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BoxyBop IR Schema",
+  "description": "Intermediate Representation schema for the UI screenshot → tokens + components pipeline",
+  "definitions": {
+    "Sha256Hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 hash as 64-character hex string"
+    },
+    "Uuid": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID v4 identifier"
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp"
+    },
+    "Semver": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version (e.g., 1.0.0)"
+    },
+    "PixelCoord": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Non-negative pixel coordinate"
+    },
+    "PixelDimension": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Positive pixel dimension"
+    },
+    "Confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence score between 0 and 1"
+    },
+    "CssColor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "CSS color value (hex, rgb, rgba, hsl, hsla)"
+    },
+    "CssSize": {
+      "type": "string",
+      "minLength": 1,
+      "description": "CSS size value (px, rem, em, %)"
+    },
+    "BBox": {
+      "type": "object",
+      "description": "Bounding box in ORIGINAL pixel coordinates",
+      "properties": {
+        "x": { "$ref": "#/definitions/PixelCoord" },
+        "y": { "$ref": "#/definitions/PixelCoord" },
+        "width": { "$ref": "#/definitions/PixelDimension" },
+        "height": { "$ref": "#/definitions/PixelDimension" }
+      },
+      "required": ["x", "y", "width", "height"],
+      "additionalProperties": false
+    },
+    "Dimensions": {
+      "type": "object",
+      "description": "Image dimensions in pixels",
+      "properties": {
+        "width": { "$ref": "#/definitions/PixelDimension" },
+        "height": { "$ref": "#/definitions/PixelDimension" }
+      },
+      "required": ["width", "height"],
+      "additionalProperties": false
+    },
+    "ElementType": {
+      "type": "string",
+      "enum": [
+        "button", "input", "text", "image", "icon", "card", "container",
+        "navigation", "header", "footer", "list", "list-item", "checkbox",
+        "radio", "toggle", "slider", "dropdown", "modal", "tooltip",
+        "badge", "avatar", "divider", "unknown"
+      ]
+    },
+    "ColorRole": {
+      "type": "string",
+      "enum": [
+        "background", "foreground", "primary", "secondary", "accent",
+        "border", "shadow", "text", "text-muted", "success", "warning",
+        "error", "info"
+      ]
+    },
+    "TypographyRole": {
+      "type": "string",
+      "enum": [
+        "heading-1", "heading-2", "heading-3", "heading-4", "body",
+        "body-small", "caption", "label", "button", "code"
+      ]
+    },
+    "SpacingContext": {
+      "type": "string",
+      "enum": ["padding", "margin", "gap", "inset"]
+    },
+    "ComponentCategory": {
+      "type": "string",
+      "enum": [
+        "layout", "navigation", "form", "feedback",
+        "data-display", "overlay", "typography", "media"
+      ]
+    },
+    "ComponentState": {
+      "type": "string",
+      "enum": ["default", "hover", "active", "focus", "disabled", "loading"]
+    },
+    "FileType": {
+      "type": "string",
+      "enum": ["token-css", "token-ts", "component", "story", "registry", "index"]
+    },
+    "ValidationType": {
+      "type": "string",
+      "enum": ["lint", "typecheck", "test"]
+    },
+    "ImageEntry": {
+      "type": "object",
+      "description": "A single image in the set",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "filename": { "type": "string", "minLength": 1 },
+        "storagePath": { "type": "string", "minLength": 1 },
+        "mimeType": {
+          "type": "string",
+          "enum": ["image/png", "image/jpeg", "image/webp"]
+        },
+        "dimensions": { "$ref": "#/definitions/Dimensions" },
+        "contentHash": { "$ref": "#/definitions/Sha256Hash" },
+        "ingestedAt": { "$ref": "#/definitions/Timestamp" }
+      },
+      "required": ["id", "filename", "storagePath", "mimeType", "dimensions", "contentHash", "ingestedAt"],
+      "additionalProperties": false
+    },
+    "ImageSet": {
+      "type": "object",
+      "description": "Collection of images being processed",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "name": { "type": "string", "minLength": 1 },
+        "images": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ImageEntry" },
+          "minItems": 1
+        },
+        "createdAt": { "$ref": "#/definitions/Timestamp" }
+      },
+      "required": ["id", "images", "createdAt"],
+      "additionalProperties": false
+    },
+    "ParsedElement": {
+      "type": "object",
+      "description": "UI element detected by OmniParser",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "source": { "type": "string", "const": "omniparser" },
+        "imageId": { "$ref": "#/definitions/Uuid" },
+        "bbox": { "$ref": "#/definitions/BBox" },
+        "elementType": { "$ref": "#/definitions/ElementType" },
+        "rawLabel": { "type": "string" },
+        "confidence": { "$ref": "#/definitions/Confidence" },
+        "parserIndex": { "type": "integer", "minimum": 0 },
+        "rawParserOutput": { "type": "object" }
+      },
+      "required": ["id", "source", "imageId", "bbox", "elementType", "confidence", "parserIndex"],
+      "additionalProperties": false
+    },
+    "CropSpec": {
+      "type": "object",
+      "description": "Specification for cropping a region from an image",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "imageId": { "$ref": "#/definitions/Uuid" },
+        "sourceElementId": { "$ref": "#/definitions/Uuid" },
+        "region": { "$ref": "#/definitions/BBox" },
+        "label": { "type": "string" },
+        "humanAdjusted": { "type": "boolean" },
+        "updatedAt": { "$ref": "#/definitions/Timestamp" }
+      },
+      "required": ["id", "imageId", "region", "humanAdjusted", "updatedAt"],
+      "additionalProperties": false
+    },
+    "CropArtifact": {
+      "type": "object",
+      "description": "A cropped image file",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "cropSpecId": { "$ref": "#/definitions/Uuid" },
+        "sourceImageId": { "$ref": "#/definitions/Uuid" },
+        "storagePath": { "type": "string", "minLength": 1 },
+        "contentHash": { "$ref": "#/definitions/Sha256Hash" },
+        "dimensions": { "$ref": "#/definitions/Dimensions" },
+        "fileSizeBytes": { "type": "integer", "minimum": 1 },
+        "createdAt": { "$ref": "#/definitions/Timestamp" }
+      },
+      "required": ["id", "cropSpecId", "sourceImageId", "storagePath", "contentHash", "dimensions", "fileSizeBytes", "createdAt"],
+      "additionalProperties": false
+    },
+    "ExtractedColor": {
+      "type": "object",
+      "properties": {
+        "role": { "$ref": "#/definitions/ColorRole" },
+        "value": { "$ref": "#/definitions/CssColor" },
+        "confidence": { "$ref": "#/definitions/Confidence" }
+      },
+      "required": ["role", "value", "confidence"],
+      "additionalProperties": false
+    },
+    "ExtractedTypography": {
+      "type": "object",
+      "properties": {
+        "role": { "$ref": "#/definitions/TypographyRole" },
+        "fontSize": { "$ref": "#/definitions/CssSize" },
+        "fontWeight": {
+          "oneOf": [
+            { "type": "integer", "minimum": 100, "maximum": 900 },
+            { "type": "string" }
+          ]
+        },
+        "lineHeight": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "string" }
+          ]
+        },
+        "letterSpacing": { "$ref": "#/definitions/CssSize" }
+      },
+      "required": ["role"],
+      "additionalProperties": false
+    },
+    "ExtractedSpacing": {
+      "type": "object",
+      "properties": {
+        "context": { "$ref": "#/definitions/SpacingContext" },
+        "value": { "$ref": "#/definitions/CssSize" }
+      },
+      "required": ["context", "value"],
+      "additionalProperties": false
+    },
+    "ComponentSuggestion": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "category": { "$ref": "#/definitions/ComponentCategory" },
+        "props": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "type": { "type": "string", "minLength": 1 },
+              "required": { "type": "boolean" },
+              "defaultValue": {}
+            },
+            "required": ["name", "type", "required"],
+            "additionalProperties": false
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "states": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ComponentState" }
+        }
+      },
+      "required": ["name", "category", "props"],
+      "additionalProperties": false
+    },
+    "GeminiAnalysis": {
+      "type": "object",
+      "description": "Structured output from Gemini analysis",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "cropArtifactId": { "$ref": "#/definitions/Uuid" },
+        "model": { "type": "string", "minLength": 1 },
+        "promptVersion": { "$ref": "#/definitions/Semver" },
+        "analyzedAt": { "$ref": "#/definitions/Timestamp" },
+        "latencyMs": { "type": "integer", "minimum": 0 },
+        "colors": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExtractedColor" }
+        },
+        "typography": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExtractedTypography" }
+        },
+        "spacing": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExtractedSpacing" }
+        },
+        "borderRadius": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CssSize" }
+        },
+        "boxShadows": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "componentSuggestions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ComponentSuggestion" }
+        },
+        "description": { "type": "string" },
+        "rawResponse": { "type": "object" }
+      },
+      "required": [
+        "id", "cropArtifactId", "model", "promptVersion", "analyzedAt",
+        "latencyMs", "colors", "typography", "spacing", "borderRadius",
+        "boxShadows", "componentSuggestions"
+      ],
+      "additionalProperties": false
+    },
+    "ComponentCandidate": {
+      "type": "object",
+      "description": "A candidate component derived from analysis",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "dedupKey": { "type": "string", "minLength": 1 },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Z][a-zA-Z0-9]*$"
+        },
+        "category": { "$ref": "#/definitions/ComponentCategory" },
+        "sourceAnalysisIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Uuid" },
+          "minItems": 1
+        },
+        "props": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "type": { "type": "string", "minLength": 1 },
+              "required": { "type": "boolean" },
+              "description": { "type": "string" },
+              "defaultValue": {}
+            },
+            "required": ["name", "type", "required"],
+            "additionalProperties": false
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "values": {
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "defaultValue": { "type": "string" }
+            },
+            "required": ["name", "values"],
+            "additionalProperties": false
+          }
+        },
+        "states": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ComponentState" }
+        },
+        "tokenRefs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "createdAt": { "$ref": "#/definitions/Timestamp" }
+      },
+      "required": [
+        "id", "dedupKey", "name", "category", "sourceAnalysisIds",
+        "props", "variants", "states", "tokenRefs", "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "ColorToken": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "value": { "$ref": "#/definitions/CssColor" },
+        "role": { "$ref": "#/definitions/ColorRole" },
+        "sourceAnalysisIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Uuid" }
+        }
+      },
+      "required": ["name", "value", "sourceAnalysisIds"],
+      "additionalProperties": false
+    },
+    "TypeScaleToken": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "fontSize": { "$ref": "#/definitions/CssSize" },
+        "lineHeight": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "string" }
+          ]
+        },
+        "fontWeight": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "string" }
+          ]
+        },
+        "letterSpacing": { "$ref": "#/definitions/CssSize" },
+        "sourceAnalysisIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Uuid" }
+        }
+      },
+      "required": ["name", "fontSize", "sourceAnalysisIds"],
+      "additionalProperties": false
+    },
+    "SpacingToken": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "value": { "$ref": "#/definitions/CssSize" },
+        "sourceAnalysisIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Uuid" }
+        }
+      },
+      "required": ["name", "value", "sourceAnalysisIds"],
+      "additionalProperties": false
+    },
+    "RadiusToken": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "value": { "$ref": "#/definitions/CssSize" },
+        "sourceAnalysisIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Uuid" }
+        }
+      },
+      "required": ["name", "value", "sourceAnalysisIds"],
+      "additionalProperties": false
+    },
+    "ShadowToken": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 },
+        "sourceAnalysisIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Uuid" }
+        }
+      },
+      "required": ["name", "value", "sourceAnalysisIds"],
+      "additionalProperties": false
+    },
+    "TokenCandidate": {
+      "type": "object",
+      "description": "All token candidates extracted from analysis",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "colors": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ColorToken" }
+        },
+        "typeScale": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/TypeScaleToken" }
+        },
+        "spacing": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SpacingToken" }
+        },
+        "radius": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/RadiusToken" }
+        },
+        "shadows": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ShadowToken" }
+        },
+        "createdAt": { "$ref": "#/definitions/Timestamp" }
+      },
+      "required": ["id", "colors", "typeScale", "spacing", "radius", "shadows", "createdAt"],
+      "additionalProperties": false
+    },
+    "PlannedFile": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/definitions/FileType" },
+        "description": { "type": "string", "minLength": 1 },
+        "sourceIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Uuid" }
+        }
+      },
+      "required": ["path", "type", "description", "sourceIds"],
+      "additionalProperties": false
+    },
+    "CodegenPlan": {
+      "type": "object",
+      "description": "Plan for code generation",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "tokenCandidateId": { "$ref": "#/definitions/Uuid" },
+        "componentCandidateIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Uuid" }
+        },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/PlannedFile" }
+        },
+        "outputRoot": { "type": "string", "minLength": 1 },
+        "createdAt": { "$ref": "#/definitions/Timestamp" }
+      },
+      "required": ["id", "componentCandidateIds", "files", "outputRoot", "createdAt"],
+      "additionalProperties": false
+    },
+    "GeneratedFile": {
+      "type": "object",
+      "properties": {
+        "plannedPath": { "type": "string", "minLength": 1 },
+        "actualPath": { "type": "string", "minLength": 1 },
+        "contentHash": { "$ref": "#/definitions/Sha256Hash" },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "success": { "type": "boolean" },
+        "error": { "type": "string" }
+      },
+      "required": ["plannedPath", "actualPath", "contentHash", "sizeBytes", "success"],
+      "additionalProperties": false
+    },
+    "ValidationResult": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/definitions/ValidationType" },
+        "passed": { "type": "boolean" },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["path", "type", "passed"],
+      "additionalProperties": false
+    },
+    "CodegenResult": {
+      "type": "object",
+      "description": "Result of code generation",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "planId": { "$ref": "#/definitions/Uuid" },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/GeneratedFile" }
+        },
+        "validations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ValidationResult" }
+        },
+        "success": { "type": "boolean" },
+        "summary": { "type": "string" },
+        "completedAt": { "$ref": "#/definitions/Timestamp" },
+        "durationMs": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["id", "planId", "files", "validations", "success", "summary", "completedAt", "durationMs"],
+      "additionalProperties": false
+    },
+    "PipelineSession": {
+      "type": "object",
+      "description": "Complete pipeline session containing all IR nodes",
+      "properties": {
+        "id": { "$ref": "#/definitions/Uuid" },
+        "name": { "type": "string" },
+        "startedAt": { "$ref": "#/definitions/Timestamp" },
+        "completedAt": { "$ref": "#/definitions/Timestamp" },
+        "imageSet": { "$ref": "#/definitions/ImageSet" },
+        "parsedElements": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ParsedElement" }
+        },
+        "cropSpecs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CropSpec" }
+        },
+        "cropArtifacts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CropArtifact" }
+        },
+        "analyses": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/GeminiAnalysis" }
+        },
+        "tokenCandidates": { "$ref": "#/definitions/TokenCandidate" },
+        "componentCandidates": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ComponentCandidate" }
+        },
+        "codegenPlan": { "$ref": "#/definitions/CodegenPlan" },
+        "codegenResult": { "$ref": "#/definitions/CodegenResult" }
+      },
+      "required": [
+        "id", "startedAt", "imageSet", "parsedElements",
+        "cropSpecs", "cropArtifacts", "analyses", "componentCandidates"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#/definitions/PipelineSession"
+}
