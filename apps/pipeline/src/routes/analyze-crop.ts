@@ -228,6 +228,7 @@ analyzeCropRouter.post("/", async (req: Request, res: Response): Promise<void> =
       analyzedAt: new Date().toISOString(),
       latencyMs: geminiLatencyMs,
       description: geminiResult.analysis.description,
+      styleDescription: geminiResult.analysis.styleDescription,
       suggestedComponentName: geminiResult.analysis.suggestedComponentName,
       category: geminiResult.analysis.category as CropAnalysis["category"],
       elements: geminiResult.analysis.elements.map((e) => ({

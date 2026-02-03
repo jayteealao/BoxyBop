@@ -13,6 +13,7 @@
     "test:style-guardrail": "node --import tsx --test test/style-guardrail.test.ts"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
     "@boxybop/ir": "workspace:*",
     "@boxybop/shared": "workspace:*",
     "cors": "^2.8.5",

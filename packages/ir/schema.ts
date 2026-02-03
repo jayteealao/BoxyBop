@@ -1164,6 +1164,8 @@ export const CropAnalysisSchema = z.object({
 
   /** High-level description of what's in the crop */
   description: z.string(),
+  /** Rich style description grounding aesthetics and token usage (for AI codegen) */
+  styleDescription: z.string().optional(),
   /** Suggested component name (PascalCase) */
   suggestedComponentName: z.string().optional(),
   /** Component category */

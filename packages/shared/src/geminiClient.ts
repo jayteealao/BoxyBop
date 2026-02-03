@@ -162,6 +162,7 @@ export interface CropAnalysisInput {
  */
 export interface GeminiCropAnalysisResponse {
   description: string;
+  styleDescription: string;
   suggestedComponentName?: string;
   category: string;
   elements: Array<{
@@ -226,6 +227,7 @@ CRITICAL: You must reference the provided CSS variable names (e.g., --color-prim
 Analyze the cropped image and output ONLY valid JSON conforming to this schema:
 {
   "description": "High-level description of what this UI element is",
+  "styleDescription": "Rich aesthetic description (150-300 words) for AI codegen grounding. Include: visual aesthetic/mood (minimal, bold, soft, corporate, playful), specific token mappings with CSS var names, interaction hints (hover elevates with shadow-md, focus shows ring), spacing philosophy (tight padding for compact feel), color relationships (primary on muted background for contrast). Write as instructions for an AI generating this component.",
   "suggestedComponentName": "PascalCase component name (e.g., PrimaryButton, SearchInput)",
   "category": "layout|navigation|form|feedback|data-display|overlay|typography|media|composite",
   "elements": [{

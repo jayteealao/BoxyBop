@@ -599,6 +599,7 @@ async function analyzeCrops(
         analyzedAt: new Date().toISOString(),
         latencyMs: result.latencyMs,
         description: result.analysis.description,
+        styleDescription: result.analysis.styleDescription,
         suggestedComponentName: result.analysis.suggestedComponentName,
         category: result.analysis.category as CropAnalysis["category"],
         elements: result.analysis.elements.map((e) => ({
