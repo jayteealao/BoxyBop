@@ -112,7 +112,12 @@
     },
     "FileType": {
       "type": "string",
-      "enum": ["token-css", "token-ts", "component", "story", "registry", "index"]
+      "enum": ["token-css", "token-ts", "primitive", "utility", "component", "story", "registry", "index"]
+    },
+    "GenerationTier": {
+      "type": "string",
+      "enum": ["tier-0-token", "tier-1-primitive", "tier-2-detected", "tier-3-utility", "tier-2c-domain"],
+      "description": "Determines when a component/file is generated"
     },
     "ValidationType": {
       "type": "string",
@@ -327,10 +332,10 @@
           "pattern": "^[A-Z][a-zA-Z0-9]*$"
         },
         "category": { "$ref": "#/definitions/ComponentCategory" },
+        "generationTier": { "$ref": "#/definitions/GenerationTier" },
         "sourceAnalysisIds": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Uuid" },
-          "minItems": 1
+          "items": { "$ref": "#/definitions/Uuid" }
         },
         "props": {
           "type": "array",
@@ -374,7 +379,7 @@
         "createdAt": { "$ref": "#/definitions/Timestamp" }
       },
       "required": [
-        "id", "dedupKey", "name", "category", "sourceAnalysisIds",
+        "id", "dedupKey", "name", "category", "generationTier", "sourceAnalysisIds",
         "props", "variants", "states", "tokenRefs", "createdAt"
       ],
       "additionalProperties": false
@@ -493,13 +498,14 @@
       "properties": {
         "path": { "type": "string", "minLength": 1 },
         "type": { "$ref": "#/definitions/FileType" },
+        "generationTier": { "$ref": "#/definitions/GenerationTier" },
         "description": { "type": "string", "minLength": 1 },
         "sourceIds": {
           "type": "array",
           "items": { "$ref": "#/definitions/Uuid" }
         }
       },
-      "required": ["path", "type", "description", "sourceIds"],
+      "required": ["path", "type", "generationTier", "description", "sourceIds"],
       "additionalProperties": false
     },
     "CodegenPlan": {

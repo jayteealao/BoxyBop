@@ -380,6 +380,24 @@ export type GeminiAnalysis = z.infer<typeof GeminiAnalysisSchema>;
 // =============================================================================
 
 /**
+ * Generation tier determines when a component is generated.
+ * - tier-0-token: Design tokens (colors, spacing, etc.) - always generated
+ * - tier-1-primitive: Layout primitives (Box, Stack, etc.) - always generated
+ * - tier-2-detected: Components detected from screenshots - conditional
+ * - tier-3-utility: Infrastructure utilities - always generated
+ * - tier-2c-domain: Domain-specific components - not auto-generated
+ */
+export const GenerationTierSchema = z.enum([
+  "tier-0-token",
+  "tier-1-primitive",
+  "tier-2-detected",
+  "tier-3-utility",
+  "tier-2c-domain",
+]);
+
+export type GenerationTier = z.infer<typeof GenerationTierSchema>;
+
+/**
  * A candidate component derived from analysis.
  */
 export const ComponentCandidateSchema = z.object({
@@ -400,8 +418,10 @@ export const ComponentCandidateSchema = z.object({
     "typography",
     "media",
   ]),
-  /** Source analysis IDs this was derived from */
-  sourceAnalysisIds: z.array(UuidSchema).min(1),
+  /** Generation tier - determines if/when this component is generated */
+  generationTier: GenerationTierSchema,
+  /** Source analysis IDs this was derived from (empty for primitives/utilities) */
+  sourceAnalysisIds: z.array(UuidSchema),
   /** Proposed props */
   props: z.array(
     z.object({
@@ -545,10 +565,21 @@ export const PlannedFileSchema = z.object({
   /** Relative output path */
   path: z.string().min(1),
   /** Type of file */
-  type: z.enum(["token-css", "token-ts", "component", "story", "registry", "index"]),
+  type: z.enum([
+    "token-css",
+    "token-ts",
+    "primitive",
+    "utility",
+    "component",
+    "story",
+    "registry",
+    "index",
+  ]),
+  /** Generation tier this file belongs to */
+  generationTier: GenerationTierSchema,
   /** What this file will contain */
   description: z.string().min(1),
-  /** IDs of source candidates */
+  /** IDs of source candidates (empty for primitives/utilities) */
   sourceIds: z.array(UuidSchema),
 });
 
@@ -710,6 +741,7 @@ export const schemas = {
   PipelineSessionSchema,
   // Sub-types
   ElementTypeSchema,
+  GenerationTierSchema,
   ExtractedColorSchema,
   ExtractedTypographySchema,
   ExtractedSpacingSchema,
