@@ -19,3 +19,19 @@ export {
   type OmniParserClientOptions,
   type ParseOptions,
 } from "./omniparserClient.js";
+
+export {
+  GeminiClient,
+  createGeminiClient,
+  type GeminiClientOptions,
+  type StyleAnalysisImage,
+  type GeminiStyleAnalysisResponse,
+} from "./geminiClient.js";
+
+export {
+  ClaudeAgentClient,
+  createClaudeAgentClient,
+  type ClaudeAgentClientOptions,
+  type StyleRefinementInput,
+  type StyleRefinementResult,
+} from "./claudeAgentClient.js";

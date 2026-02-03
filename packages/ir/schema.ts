@@ -692,6 +692,389 @@ export const CodegenResultSchema = z.object({
 export type CodegenResult = z.infer<typeof CodegenResultSchema>;
 
 // =============================================================================
+// StyleAnalysisGemini (raw Gemini output for style analysis)
+// =============================================================================
+
+/**
+ * Color semantic mapping from Gemini style analysis.
+ */
+export const StyleColorMappingSchema = z.object({
+  /** Semantic role */
+  role: z.enum([
+    "background",
+    "surface",
+    "surface-elevated",
+    "border",
+    "border-subtle",
+    "text",
+    "text-muted",
+    "text-inverse",
+    "brand",
+    "brand-muted",
+    "primary",
+    "primary-hover",
+    "secondary",
+    "accent",
+    "success",
+    "warning",
+    "danger",
+    "info",
+  ]),
+  /** Hex color value */
+  value: CssColorSchema,
+  /** Where observed */
+  observedIn: z.array(z.string()),
+});
+
+export type StyleColorMapping = z.infer<typeof StyleColorMappingSchema>;
+
+/**
+ * Typography style from Gemini analysis.
+ */
+export const StyleTypographySchema = z.object({
+  /** Typography role */
+  role: z.enum([
+    "display",
+    "heading-1",
+    "heading-2",
+    "heading-3",
+    "heading-4",
+    "body",
+    "body-small",
+    "caption",
+    "label",
+    "button",
+    "code",
+    "overline",
+  ]),
+  /** Font size in pixels */
+  fontSizePx: z.number().positive(),
+  /** Font weight */
+  fontWeight: z.number().int().min(100).max(900),
+  /** Line height ratio or pixels */
+  lineHeight: z.union([z.number(), z.string()]),
+  /** Letter spacing */
+  letterSpacing: z.string().optional(),
+});
+
+export type StyleTypography = z.infer<typeof StyleTypographySchema>;
+
+/**
+ * Spacing value from Gemini analysis.
+ */
+export const StyleSpacingSchema = z.object({
+  /** Spacing name (e.g., "xs", "sm", "md") */
+  name: z.string(),
+  /** Value in pixels */
+  valuePx: z.number().nonnegative(),
+  /** Where this spacing was observed */
+  contexts: z.array(z.string()),
+});
+
+export type StyleSpacing = z.infer<typeof StyleSpacingSchema>;
+
+/**
+ * Component style rule from Gemini analysis.
+ */
+export const ComponentStyleRuleSchema = z.object({
+  /** Component type */
+  component: z.enum([
+    "button",
+    "input",
+    "select",
+    "checkbox",
+    "radio",
+    "toggle",
+    "card",
+    "modal",
+    "dropdown",
+    "table",
+    "nav",
+    "tabs",
+    "badge",
+    "avatar",
+    "tooltip",
+    "alert",
+  ]),
+  /** Padding in pixels */
+  paddingPx: z.object({
+    x: z.number().nonnegative(),
+    y: z.number().nonnegative(),
+  }),
+  /** Border radius in pixels */
+  borderRadiusPx: z.number().nonnegative(),
+  /** Border width in pixels */
+  borderWidthPx: z.number().nonnegative().optional(),
+  /** Min height in pixels */
+  minHeightPx: z.number().positive().optional(),
+  /** Typical gap/spacing in pixels */
+  gapPx: z.number().nonnegative().optional(),
+  /** Notes about this component's style */
+  notes: z.string().optional(),
+});
+
+export type ComponentStyleRule = z.infer<typeof ComponentStyleRuleSchema>;
+
+/**
+ * Raw structured output from Gemini style analysis.
+ * This is the initial analysis before Claude refinement.
+ */
+export const StyleAnalysisGeminiSchema = z.object({
+  /** Unique identifier */
+  id: UuidSchema,
+  /** Image set ID analyzed */
+  imageSetId: z.string(),
+  /** Gemini model used */
+  model: z.string(),
+  /** Prompt version */
+  promptVersion: SemverSchema,
+  /** When analysis was performed */
+  analyzedAt: TimestampSchema,
+  /** Latency in milliseconds */
+  latencyMs: z.number().int().nonnegative(),
+
+  /** Color mappings */
+  colors: z.array(StyleColorMappingSchema),
+  /** Typography scale */
+  typography: z.array(StyleTypographySchema),
+  /** Spacing scale */
+  spacing: z.array(StyleSpacingSchema),
+  /** Border radius values observed */
+  borderRadiusPx: z.array(z.number().nonnegative()),
+  /** Shadow values */
+  shadows: z.array(z.object({
+    name: z.string(),
+    value: z.string(),
+  })),
+  /** Z-index layers */
+  zIndex: z.array(z.object({
+    name: z.string(),
+    value: z.number().int(),
+  })).optional(),
+  /** Motion/animation tokens if evident */
+  motion: z.array(z.object({
+    name: z.string(),
+    duration: z.string(),
+    easing: z.string().optional(),
+  })).optional(),
+
+  /** Component-specific style rules */
+  componentRules: z.array(ComponentStyleRuleSchema),
+
+  /** General style observations */
+  observations: z.object({
+    density: z.enum(["compact", "comfortable", "spacious"]),
+    contrast: z.enum(["low", "medium", "high"]),
+    iconStyle: z.enum(["outlined", "filled", "duotone", "mixed"]).optional(),
+    focusStyle: z.string().optional(),
+    borderStyle: z.enum(["none", "subtle", "prominent"]).optional(),
+  }),
+
+  /** Image references for rules */
+  imageReferences: z.array(z.object({
+    imageId: z.string(),
+    supports: z.array(z.string()), // what rules this image supports
+  })),
+
+  /** Raw response for debugging */
+  rawResponse: z.record(z.unknown()).optional(),
+});
+
+export type StyleAnalysisGemini = z.infer<typeof StyleAnalysisGeminiSchema>;
+
+// =============================================================================
+// StyleGuideLocked (final locked tokens)
+// =============================================================================
+
+/**
+ * Locked color token.
+ */
+export const LockedColorTokenSchema = z.object({
+  name: z.string(),
+  cssVar: z.string(),
+  value: CssColorSchema,
+  role: StyleColorMappingSchema.shape.role,
+});
+
+export type LockedColorToken = z.infer<typeof LockedColorTokenSchema>;
+
+/**
+ * Locked typography token.
+ */
+export const LockedTypographyTokenSchema = z.object({
+  name: z.string(),
+  cssVar: z.string(),
+  fontSize: CssSizeSchema,
+  fontWeight: z.number().int(),
+  lineHeight: z.union([z.number(), z.string()]),
+  letterSpacing: CssSizeSchema.optional(),
+});
+
+export type LockedTypographyToken = z.infer<typeof LockedTypographyTokenSchema>;
+
+/**
+ * Locked spacing token.
+ */
+export const LockedSpacingTokenSchema = z.object({
+  name: z.string(),
+  cssVar: z.string(),
+  value: CssSizeSchema,
+});
+
+export type LockedSpacingToken = z.infer<typeof LockedSpacingTokenSchema>;
+
+/**
+ * Locked radius token.
+ */
+export const LockedRadiusTokenSchema = z.object({
+  name: z.string(),
+  cssVar: z.string(),
+  value: CssSizeSchema,
+});
+
+export type LockedRadiusToken = z.infer<typeof LockedRadiusTokenSchema>;
+
+/**
+ * Locked shadow token.
+ */
+export const LockedShadowTokenSchema = z.object({
+  name: z.string(),
+  cssVar: z.string(),
+  value: z.string(),
+});
+
+export type LockedShadowToken = z.infer<typeof LockedShadowTokenSchema>;
+
+/**
+ * Locked border token.
+ */
+export const LockedBorderTokenSchema = z.object({
+  name: z.string(),
+  cssVar: z.string(),
+  width: CssSizeSchema,
+  style: z.enum(["solid", "dashed", "dotted", "none"]),
+  color: z.string().optional(),
+});
+
+export type LockedBorderToken = z.infer<typeof LockedBorderTokenSchema>;
+
+/**
+ * Locked z-index token.
+ */
+export const LockedZIndexTokenSchema = z.object({
+  name: z.string(),
+  cssVar: z.string(),
+  value: z.number().int(),
+});
+
+export type LockedZIndexToken = z.infer<typeof LockedZIndexTokenSchema>;
+
+/**
+ * Locked motion token.
+ */
+export const LockedMotionTokenSchema = z.object({
+  name: z.string(),
+  cssVar: z.string(),
+  duration: z.string(),
+  easing: z.string().optional(),
+});
+
+export type LockedMotionToken = z.infer<typeof LockedMotionTokenSchema>;
+
+/**
+ * All locked tokens - this is IMMUTABLE after creation.
+ */
+export const LockedTokensSchema = z.object({
+  colors: z.array(LockedColorTokenSchema),
+  typography: z.array(LockedTypographyTokenSchema),
+  spacing: z.array(LockedSpacingTokenSchema),
+  radius: z.array(LockedRadiusTokenSchema),
+  shadows: z.array(LockedShadowTokenSchema),
+  borders: z.array(LockedBorderTokenSchema),
+  zIndex: z.array(LockedZIndexTokenSchema),
+  motion: z.array(LockedMotionTokenSchema),
+});
+
+export type LockedTokens = z.infer<typeof LockedTokensSchema>;
+
+/**
+ * Do/don't rule for the style guide.
+ */
+export const StyleRuleSchema = z.object({
+  type: z.enum(["do", "dont"]),
+  description: z.string(),
+  example: z.string().optional(),
+  imageRef: z.string().optional(),
+});
+
+export type StyleRule = z.infer<typeof StyleRuleSchema>;
+
+/**
+ * Component-specific locked style guide.
+ */
+export const LockedComponentGuideSchema = z.object({
+  component: ComponentStyleRuleSchema.shape.component,
+  tokenRefs: z.array(z.string()), // which tokens to use
+  padding: z.string(), // e.g., "var(--space-3) var(--space-4)"
+  borderRadius: z.string(),
+  minHeight: z.string().optional(),
+  rules: z.array(StyleRuleSchema),
+});
+
+export type LockedComponentGuide = z.infer<typeof LockedComponentGuideSchema>;
+
+/**
+ * Final locked style guide - IMMUTABLE after creation.
+ * Later steps must treat this as read-only input.
+ */
+export const StyleGuideLockedSchema = z.object({
+  /** Unique identifier */
+  id: UuidSchema,
+  /** Style run ID */
+  styleRunId: z.string(),
+  /** Image set this was derived from */
+  imageSetId: z.string(),
+  /** Gemini analysis ID */
+  geminiAnalysisId: UuidSchema,
+
+  /** Locked tokens - IMMUTABLE */
+  tokens: LockedTokensSchema,
+
+  /** Component-specific guides */
+  componentGuides: z.array(LockedComponentGuideSchema),
+
+  /** General do/don't rules */
+  generalRules: z.array(StyleRuleSchema),
+
+  /** Density setting */
+  density: z.enum(["compact", "comfortable", "spacious"]),
+  /** Contrast level */
+  contrast: z.enum(["low", "medium", "high"]),
+  /** Icon style */
+  iconStyle: z.enum(["outlined", "filled", "duotone", "mixed"]).optional(),
+  /** Focus style description */
+  focusStyle: z.string().optional(),
+
+  /** Image references supporting specific rules */
+  references: z.array(z.object({
+    imageId: z.string(),
+    supports: z.array(z.string()),
+  })),
+
+  /** Assumptions made during reconciliation */
+  assumptions: z.array(z.string()),
+
+  /** When this guide was locked */
+  lockedAt: TimestampSchema,
+  /** SHA-256 hash of the tokens payload (for integrity) */
+  tokensHash: Sha256HashSchema,
+  /** Claude model used for refinement */
+  refinedByModel: z.string(),
+});
+
+export type StyleGuideLocked = z.infer<typeof StyleGuideLockedSchema>;
+
+// =============================================================================
 // Session (top-level container)
 // =============================================================================
 
@@ -717,6 +1100,10 @@ export const PipelineSessionSchema = z.object({
   cropArtifacts: z.array(CropArtifactSchema),
   /** Gemini analysis results */
   analyses: z.array(GeminiAnalysisSchema),
+  /** Style analysis from Gemini */
+  styleAnalysis: StyleAnalysisGeminiSchema.optional(),
+  /** Locked style guide (IMMUTABLE after creation) */
+  lockedStyleGuide: StyleGuideLockedSchema.optional(),
   /** Extracted token candidates */
   tokenCandidates: TokenCandidateSchema.optional(),
   /** Derived component candidates */
@@ -754,6 +1141,8 @@ export const schemas = {
   CropSpecSchema,
   CropArtifactSchema,
   GeminiAnalysisSchema,
+  StyleAnalysisGeminiSchema,
+  StyleGuideLockedSchema,
   ComponentCandidateSchema,
   TokenCandidateSchema,
   CodegenPlanSchema,
@@ -775,4 +1164,20 @@ export const schemas = {
   PlannedFileSchema,
   GeneratedFileSchema,
   ValidationResultSchema,
+  // Style schemas
+  StyleColorMappingSchema,
+  StyleTypographySchema,
+  StyleSpacingSchema,
+  ComponentStyleRuleSchema,
+  LockedTokensSchema,
+  LockedColorTokenSchema,
+  LockedTypographyTokenSchema,
+  LockedSpacingTokenSchema,
+  LockedRadiusTokenSchema,
+  LockedShadowTokenSchema,
+  LockedBorderTokenSchema,
+  LockedZIndexTokenSchema,
+  LockedMotionTokenSchema,
+  StyleRuleSchema,
+  LockedComponentGuideSchema,
 };

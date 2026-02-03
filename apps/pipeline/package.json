@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/**/*.test.ts",
-    "test:parse": "node --import tsx --test test/parse.test.ts"
+    "test:parse": "node --import tsx --test test/parse.test.ts",
+    "test:style-guardrail": "node --import tsx --test test/style-guardrail.test.ts"
   },
   "dependencies": {
     "@boxybop/ir": "workspace:*",

@@ -12,6 +12,14 @@
     "./omniparser": {
       "types": "./dist/omniparserClient.d.ts",
       "import": "./dist/omniparserClient.js"
+    },
+    "./gemini": {
+      "types": "./dist/geminiClient.d.ts",
+      "import": "./dist/geminiClient.js"
+    },
+    "./claude-agent": {
+      "types": "./dist/claudeAgentClient.d.ts",
+      "import": "./dist/claudeAgentClient.js"
     }
   },
   "files": [
@@ -23,6 +31,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
     "@boxybop/ir": "workspace:*",
     "replicate": "^0.25.0",
     "zod": "^3.22.0"

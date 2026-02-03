@@ -16,6 +16,19 @@ interface HealthStatus {
   status: string;
   services: {
     replicate: string;
+    gemini?: string;
+    anthropic?: string;
+  };
+}
+
+interface StyleAnalysisResult {
+  styleRunId: string;
+  geminiAnalysisId: string;
+  lockedStyleGuideId: string;
+  latency: {
+    geminiMs: number;
+    claudeMs: number;
+    totalMs: number;
   };
 }
 
@@ -44,8 +57,10 @@ export function App() {
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzingStyle, setIsAnalyzingStyle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [styleAnalysis, setStyleAnalysis] = useState<StyleAnalysisResult | null>(null);
 
   // Check health on mount
   useEffect(() => {
@@ -235,11 +250,61 @@ export function App() {
     setCropMode(false);
   }, [currentImage]);
 
+  const handleAnalyzeStyle = useCallback(async () => {
+    if (images.length === 0) return;
+
+    setIsAnalyzingStyle(true);
+    setError(null);
+
+    try {
+      // Generate a unique image set ID
+      const imageSetId = `imageset-${generateId()}`;
+
+      // Prepare images for style analysis
+      const imageData = images.map((img) => ({
+        id: img.id,
+        base64: img.base64,
+        mimeType: "image/png" as const,
+      }));
+
+      console.log(`[Studio] Starting style analysis for ${images.length} images`);
+
+      const response = await fetch("/api/analyze-style-set", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageSetId,
+          images: imageData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.message || `Style analysis failed: ${response.status}`);
+      }
+
+      const result: StyleAnalysisResult = await response.json();
+
+      setStyleAnalysis(result);
+      console.log(`[Studio] Style analysis complete:`, {
+        styleRunId: result.styleRunId,
+        latency: result.latency,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      console.error("[Studio] Style analysis error:", err);
+    } finally {
+      setIsAnalyzingStyle(false);
+    }
+  }, [images]);
+
   const selectedElement = selectedElementId
     ? currentElements.find((e) => e.id === selectedElementId)
     : null;
 
   const replicateConfigured = health?.services?.replicate === "configured";
+  const styleAnalysisAvailable = true; // Will be controlled by health check in future
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", padding: "1.5rem", maxWidth: 1400, margin: "0 auto" }}>
@@ -334,18 +399,33 @@ export function App() {
                 <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                   <button
                     onClick={handleRunOmniParser}
-                    disabled={isLoading || !replicateConfigured}
+                    disabled={isLoading || isAnalyzingStyle || !replicateConfigured}
                     style={{
                       padding: "0.5rem 1rem",
                       backgroundColor: "#3b82f6",
                       color: "#fff",
                       border: "none",
                       borderRadius: "4px",
-                      cursor: isLoading || !replicateConfigured ? "not-allowed" : "pointer",
-                      opacity: isLoading || !replicateConfigured ? 0.5 : 1,
+                      cursor: isLoading || isAnalyzingStyle || !replicateConfigured ? "not-allowed" : "pointer",
+                      opacity: isLoading || isAnalyzingStyle || !replicateConfigured ? 0.5 : 1,
                     }}
                   >
                     {isLoading ? "Processing..." : "Run OmniParser"}
+                  </button>
+                  <button
+                    onClick={handleAnalyzeStyle}
+                    disabled={isLoading || isAnalyzingStyle || images.length === 0 || !styleAnalysisAvailable}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#8b5cf6",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: isLoading || isAnalyzingStyle || images.length === 0 ? "not-allowed" : "pointer",
+                      opacity: isLoading || isAnalyzingStyle || images.length === 0 ? 0.5 : 1,
+                    }}
+                  >
+                    {isAnalyzingStyle ? "Analyzing Style..." : "Analyze Style"}
                   </button>
                   {selectedElement && (
                     <button
@@ -522,6 +602,47 @@ h: ${Math.round(currentCropRegion.height)}`}
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Style Analysis Result */}
+          {styleAnalysis && (
+            <div style={{ marginTop: "1.5rem" }}>
+              <h4 style={{ margin: "0 0 0.5rem", color: "#8b5cf6" }}>Style Analysis</h4>
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  padding: "0.5rem",
+                  backgroundColor: "#000",
+                  borderRadius: "4px",
+                }}
+              >
+                <p style={{ margin: "0 0 0.25rem" }}>
+                  <strong>Run ID:</strong>
+                </p>
+                <p
+                  style={{
+                    margin: "0 0 0.5rem",
+                    fontFamily: "monospace",
+                    fontSize: "0.65rem",
+                    color: "#888",
+                    wordBreak: "break-all",
+                  }}
+                >
+                  {styleAnalysis.styleRunId}
+                </p>
+                <p style={{ margin: "0 0 0.25rem" }}>
+                  <strong>Latency:</strong>
+                </p>
+                <ul style={{ margin: "0 0 0.5rem", paddingLeft: "1rem" }}>
+                  <li>Gemini: {styleAnalysis.latency.geminiMs}ms</li>
+                  <li>Claude: {styleAnalysis.latency.claudeMs}ms</li>
+                  <li>Total: {styleAnalysis.latency.totalMs}ms</li>
+                </ul>
+                <p style={{ margin: "0.5rem 0 0", color: "#4ade80" }}>
+                  Tokens locked
+                </p>
               </div>
             </div>
           )}

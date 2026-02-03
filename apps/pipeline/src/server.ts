@@ -3,6 +3,7 @@ import cors from "cors";
 import { healthRouter } from "./routes/health.js";
 import { sessionsRouter } from "./routes/sessions.js";
 import { parseRouter } from "./routes/parse.js";
+import { analyzeStyleRouter } from "./routes/analyze-style.js";
 import { validateEnv } from "./config/env.js";
 
 // Validate required environment variables
@@ -19,6 +20,7 @@ app.use(express.json({ limit: "50mb" }));
 app.use("/api/health", healthRouter);
 app.use("/api/sessions", sessionsRouter);
 app.use("/api/parse", parseRouter);
+app.use("/api/analyze-style-set", analyzeStyleRouter);
 
 // Error handling
 app.use(
@@ -37,4 +39,6 @@ app.listen(PORT, () => {
   console.log(`Pipeline server running on http://localhost:${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
   console.log(`Replicate API: ${env.REPLICATE_API_TOKEN ? "configured" : "NOT configured"}`);
+  console.log(`Gemini API: ${env.GEMINI_API_KEY ? "configured" : "NOT configured"}`);
+  console.log(`Anthropic API: ${env.ANTHROPIC_API_KEY ? "configured" : "NOT configured"}`);
 });
