@@ -21,7 +21,7 @@
     "typecheck": "tsc --noEmit",
     "generate-json-schema": "tsx scripts/generate-json-schema.ts",
     "test": "vitest run",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint . --ext .ts --ignore-pattern dist"
   },
   "dependencies": {
     "zod": "^3.22.0"
